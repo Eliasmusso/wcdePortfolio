@@ -21,6 +21,21 @@ interface TrailPoint {
   timestamp: number;
 }
 
+const TRAIL_LIFETIME = 1200;
+const THROTTLE_DELAY = 16;
+const MOUSE_INFLUENCE_RADIUS = 180;
+const TRAIL_INFLUENCE_RADIUS = 160;
+const TRAIL_MAX_POINTS = 30;
+const HERO_RADIUS = 260;
+const DOT_MARGIN = 100;
+const DEFAULT_WIDTH = 1200;
+const DEFAULT_HEIGHT = 800;
+const OPACITY_BASE = 0.7;
+const SCALE_MULTIPLIER = 1.8;
+const OPACITY_BOOST = 0.6;
+const HIGHLIGHT_THRESHOLD = 0.15;
+const MAX_INFLUENCE_THRESHOLD = 0.99;
+
 export function DotBackground({
   dotColor = "#555555",
   hoverColor = "#e0001a",
@@ -32,12 +47,11 @@ export function DotBackground({
   const animationFrameRef = useRef<number | null>(null);
   const mouseMoveTimeoutRef = useRef<number | null>(null);
 
-  // Trail-Animation
   useEffect(() => {
     const updateTrail = () => {
       const now = Date.now();
       setTrail((prev) =>
-        prev.filter((point) => now - point.timestamp < 1200)
+        prev.filter((point) => now - point.timestamp < TRAIL_LIFETIME)
       );
       animationFrameRef.current = requestAnimationFrame(updateTrail);
     };
@@ -51,14 +65,13 @@ export function DotBackground({
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      // Throttle mouse move für bessere Performance
       if (mouseMoveTimeoutRef.current) {
         return;
       }
 
       mouseMoveTimeoutRef.current = window.setTimeout(() => {
         mouseMoveTimeoutRef.current = null;
-      }, 16); // ~60fps
+      }, THROTTLE_DELAY);
 
       const rect = e.currentTarget.getBoundingClientRect();
       const newPos = {
@@ -69,15 +82,13 @@ export function DotBackground({
 
       setTrail((prev) => {
         const now = Date.now();
-        // Begrenze Trail-Punkte auf max 30 für bessere Performance
-        const filtered = prev.filter((p) => now - p.timestamp < 1200);
-        if (filtered.length === 0 || now - filtered[filtered.length - 1].timestamp > 16) {
+        const filtered = prev.filter((p) => now - p.timestamp < TRAIL_LIFETIME);
+        if (filtered.length === 0 || now - filtered[filtered.length - 1].timestamp > THROTTLE_DELAY) {
           const newTrail = [
             ...filtered,
             { ...newPos, timestamp: now },
           ];
-          // Begrenze auf max 30 Punkte
-          return newTrail.slice(-30);
+          return newTrail.slice(-TRAIL_MAX_POINTS);
         }
         return filtered;
       });
@@ -93,12 +104,10 @@ export function DotBackground({
     }
   }, []);
 
-  // Dots berechnen - einfach und direkt
   const dots = useMemo(() => {
-    const containerWidth = typeof window !== "undefined" ? window.innerWidth : 1200;
-    const containerHeight = typeof window !== "undefined" ? window.innerHeight : 800;
+    const containerWidth = typeof window !== "undefined" ? window.innerWidth : DEFAULT_WIDTH;
+    const containerHeight = typeof window !== "undefined" ? window.innerHeight : DEFAULT_HEIGHT;
     
-    // Finde h1-Position
     let centerX = containerWidth / 2;
     let centerY = containerHeight / 2;
     
@@ -107,27 +116,26 @@ export function DotBackground({
       const rect = h1Element.getBoundingClientRect();
       centerX = rect.left + rect.width / 2;
       centerY = rect.top + rect.height / 2;
+      centerX = Math.max(0, Math.min(containerWidth, centerX));
+      centerY = Math.max(0, Math.min(containerHeight, centerY));
     }
     
     const dotsArray: Dot[] = [];
-    const heroRadius = 260;
+    const maxDistance = Math.max(containerWidth, containerHeight) * 0.8;
+    const sizeBase = dotSize * 0.8;
+    const sizeMultiplier = dotSize * 3.5;
     
-    // Generiere Dots über den gesamten Bildschirm + Rand
-    for (let x = -100; x < containerWidth + 100; x += spacing) {
-      for (let y = -100; y < containerHeight + 100; y += spacing) {
+    for (let x = -DOT_MARGIN; x < containerWidth + DOT_MARGIN; x += spacing) {
+      for (let y = -DOT_MARGIN; y < containerHeight + DOT_MARGIN; y += spacing) {
         const dx = x - centerX;
         const dy = y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Skip dots im Kreis um h1
-        if (distance < heroRadius) continue;
+        if (distance < HERO_RADIUS) continue;
         
-        // Größe basierend auf Distanz: innere Punkte kleiner, äußere größer
-        const maxDistance = Math.max(containerWidth, containerHeight) * 0.8;
-        const distanceFromCutout = distance - heroRadius;
-        const normalizedDistance = Math.min(distanceFromCutout / (maxDistance - heroRadius), 1);
-        // Invertierte Größenverteilung: kleinere Basis, größere Multiplikation für äußere Punkte
-        const calculatedSize = dotSize * 0.8 + (dotSize * 3.5) * normalizedDistance;
+        const distanceFromCutout = distance - HERO_RADIUS;
+        const normalizedDistance = Math.min(distanceFromCutout / (maxDistance - HERO_RADIUS), 1);
+        const calculatedSize = sizeBase + sizeMultiplier * normalizedDistance;
         
         dotsArray.push({
           x,
@@ -141,7 +149,6 @@ export function DotBackground({
     return dotsArray;
   }, [spacing, dotSize]);
 
-  // Dot-Styling mit Hover-Effekt
   const getDotStyle = useCallback(
     (dot: Dot) => {
       const baseStyle = {
@@ -151,7 +158,7 @@ export function DotBackground({
         height: `${dot.size}px`,
         backgroundColor: dotColor,
         transform: "scale(1)",
-        opacity: 0.7,
+        opacity: OPACITY_BASE,
       };
 
       if (!mousePos && trail.length === 0) {
@@ -161,44 +168,39 @@ export function DotBackground({
       const now = Date.now();
       let maxInfluence = 0;
 
-      // Maus-Einfluss
       if (mousePos) {
         const dx = dot.x - mousePos.x;
         const dy = dot.y - mousePos.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const influence = Math.max(0, 1 - distance / 180);
+        const influence = Math.max(0, 1 - distance / MOUSE_INFLUENCE_RADIUS);
         maxInfluence = Math.max(maxInfluence, influence);
       }
 
-      // Trail-Einfluss - verstärkt für stärkeren Schweif
-      // Optimiert: nur relevante Trail-Punkte prüfen (innerhalb des Einflussradius)
       for (let i = trail.length - 1; i >= 0; i--) {
         const trailPoint = trail[i];
         const age = now - trailPoint.timestamp;
-        if (age > 1200) continue; // Skip alte Punkte
+        if (age > TRAIL_LIFETIME) continue;
         
         const dx = dot.x - trailPoint.x;
         const dy = dot.y - trailPoint.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        // Early exit wenn zu weit weg
-        if (distance > 160) continue;
+        if (distance > TRAIL_INFLUENCE_RADIUS) continue;
         
-        const ageFactor = Math.max(0, 1 - age / 1200);
-        const distanceInfluence = Math.max(0, 1 - distance / 160);
+        const ageFactor = Math.max(0, 1 - age / TRAIL_LIFETIME);
+        const distanceInfluence = Math.max(0, 1 - distance / TRAIL_INFLUENCE_RADIUS);
         const combinedInfluence = distanceInfluence * ageFactor * 0.85;
         maxInfluence = Math.max(maxInfluence, combinedInfluence);
         
-        // Early exit wenn bereits maximale Influence erreicht
-        if (maxInfluence >= 0.99) break;
+        if (maxInfluence >= MAX_INFLUENCE_THRESHOLD) break;
       }
 
-      const scaleFactor = 1 + maxInfluence * 1.8;
-      const opacityBoost = maxInfluence * 0.6;
+      const scaleFactor = 1 + maxInfluence * SCALE_MULTIPLIER;
+      const opacityBoost = maxInfluence * OPACITY_BOOST;
 
       return {
         ...baseStyle,
-        backgroundColor: maxInfluence > 0.15 ? hoverColor : dotColor,
+        backgroundColor: maxInfluence > HIGHLIGHT_THRESHOLD ? hoverColor : dotColor,
         transform: `scale(${scaleFactor})`,
         opacity: Math.min(1, baseStyle.opacity + opacityBoost),
       };

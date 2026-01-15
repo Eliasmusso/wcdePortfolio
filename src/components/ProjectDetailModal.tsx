@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ProjectDetailModalProps {
   isOpen: boolean;
@@ -15,6 +15,8 @@ interface ProjectDetailModalProps {
 }
 
 function ProjectDetailModal({ isOpen, onClose, project }: ProjectDetailModalProps) {
+  const [imageOrientations, setImageOrientations] = useState<Record<number, 'portrait' | 'landscape'>>({});
+
   // Convert YouTube URL to embed URL
   const getYouTubeEmbedUrl = (url: string): string => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
@@ -22,6 +24,36 @@ function ProjectDetailModal({ isOpen, onClose, project }: ProjectDetailModalProp
     const videoId = (match && match[2].length === 11) ? match[2] : null;
     return videoId ? `https://www.youtube.com/embed/${videoId}` : url;
   };
+
+  // Check image orientation
+  const checkImageOrientation = (imageUrl: string, index: number) => {
+    const img = new Image();
+    img.onload = () => {
+      const isPortrait = img.height > img.width;
+      setImageOrientations(prev => ({
+        ...prev,
+        [index]: isPortrait ? 'portrait' : 'landscape'
+      }));
+    };
+    img.onerror = () => {
+      // Fallback: assume landscape if image fails to load
+      setImageOrientations(prev => ({
+        ...prev,
+        [index]: 'landscape'
+      }));
+    };
+    img.src = imageUrl;
+  };
+
+  // Check all images when project changes
+  useEffect(() => {
+    if (project?.images) {
+      setImageOrientations({});
+      project.images.forEach((image, index) => {
+        checkImageOrientation(image, index);
+      });
+    }
+  }, [project?.images]);
 
   // Close modal on ESC key
   useEffect(() => {
@@ -43,12 +75,6 @@ function ProjectDetailModal({ isOpen, onClose, project }: ProjectDetailModalProp
     };
   }, [isOpen, onClose]);
 
-  // Debug logging
-  useEffect(() => {
-    if (isOpen) {
-      console.log('Modal isOpen:', isOpen, 'project:', project);
-    }
-  }, [isOpen, project]);
 
   if (!project || !isOpen) return null;
 
@@ -141,73 +167,175 @@ function ProjectDetailModal({ isOpen, onClose, project }: ProjectDetailModalProp
                 </motion.div>
               ) : project.images && project.images.length > 0 ? (
                 <>
-                  {project.id === 'helfair' && project.images.length >= 2 ? (
-                    <>
-                      {/* Erste zwei Bilder nebeneinander */}
-                      <div className="project-modal-images-row">
-                        {project.images.slice(0, 2).map((image, index) => (
-                          <motion.div
-                            key={index}
-                            className="project-modal-image-wrapper project-modal-image-side-by-side"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1, duration: 0.4 }}
-                          >
-                            <img
-                              src={image}
-                              alt={`${project.title} - Image ${index + 1}`}
-                              className="project-modal-image"
-                              onError={(e) => {
-                                console.error('Image failed to load:', image);
-                                (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${index + 1}`;
-                              }}
-                            />
-                          </motion.div>
-                        ))}
-                      </div>
-                      {/* Restliche Bilder untereinander */}
-                      {project.images.slice(2).map((image, index) => (
+                  {(() => {
+                    // Gruppiere Bilder basierend auf Ausrichtung
+                    const portraitImages: { image: string; index: number }[] = [];
+                    const landscapeImages: { image: string; index: number }[] = [];
+                    
+                    project.images.forEach((image, index) => {
+                      const orientation = imageOrientations[index];
+                      if (orientation === 'portrait') {
+                        portraitImages.push({ image, index });
+                      } else {
+                        landscapeImages.push({ image, index });
+                      }
+                    });
+
+                    // Wenn Orientierung noch nicht bekannt ist, zeige alle einzeln
+                    const allOrientationsKnown = project.images.every((_, index) => imageOrientations[index] !== undefined);
+                    
+                    if (!allOrientationsKnown) {
+                      // Fallback: zeige alle Bilder einzeln während des Ladens
+                      return project.images.map((image, index) => (
                         <motion.div
-                          key={index + 2}
+                          key={index}
                           className="project-modal-image-wrapper"
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: (index + 2) * 0.1, duration: 0.4 }}
+                          transition={{ delay: index * 0.1, duration: 0.4 }}
                         >
                           <img
                             src={image}
-                            alt={`${project.title} - Image ${index + 3}`}
+                            alt={`${project.title} - Image ${index + 1}`}
                             className="project-modal-image"
+                            onLoad={() => checkImageOrientation(image, index)}
                             onError={(e) => {
                               console.error('Image failed to load:', image);
-                              (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${index + 3}`;
+                              (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${index + 1}`;
                             }}
                           />
                         </motion.div>
-                      ))}
-                    </>
-                  ) : (
-                    /* Normale vertikale Anordnung für andere Projekte */
-                    project.images.map((image, index) => (
-                      <motion.div
-                        key={index}
-                        className="project-modal-image-wrapper"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.4 }}
-                      >
-                        <img
-                          src={image}
-                          alt={`${project.title} - Image ${index + 1}`}
-                          className="project-modal-image"
-                          onError={(e) => {
-                            console.error('Image failed to load:', image);
-                            (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${index + 1}`;
-                          }}
-                        />
-                      </motion.div>
-                    ))
-                  )}
+                      ));
+                    }
+
+                    const result: JSX.Element[] = [];
+                    let animationIndex = 0;
+
+                    // Verarbeite alle Bilder in Reihenfolge
+                    let portraitIndex = 0;
+                    let landscapeIndex = 0;
+                    let currentPortraitGroup: { image: string; index: number }[] = [];
+
+                    project.images.forEach((image, originalIndex) => {
+                      const orientation = imageOrientations[originalIndex];
+                      
+                      if (orientation === 'portrait') {
+                        currentPortraitGroup.push({ image, index: originalIndex });
+                        
+                        // Wenn 2 Portrait-Bilder gesammelt oder letztes Bild, zeige sie nebeneinander
+                        if (currentPortraitGroup.length === 2 || originalIndex === project.images.length - 1) {
+                          result.push(
+                            <div key={`portrait-group-${portraitIndex}`} className="project-modal-images-row">
+                              {currentPortraitGroup.map((item, groupIndex) => (
+                                <motion.div
+                                  key={item.index}
+                                  className="project-modal-image-wrapper project-modal-image-side-by-side"
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: animationIndex * 0.1, duration: 0.4 }}
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt={`${project.title} - Image ${item.index + 1}`}
+                                    className="project-modal-image"
+                                    onError={(e) => {
+                                      console.error('Image failed to load:', item.image);
+                                      (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${item.index + 1}`;
+                                    }}
+                                  />
+                                </motion.div>
+                              ))}
+                            </div>
+                          );
+                          animationIndex += currentPortraitGroup.length;
+                          currentPortraitGroup = [];
+                          portraitIndex++;
+                        }
+                      } else {
+                        // Wenn Portrait-Gruppe vorhanden, zeige sie zuerst
+                        if (currentPortraitGroup.length > 0) {
+                          result.push(
+                            <div key={`portrait-group-${portraitIndex}`} className="project-modal-images-row">
+                              {currentPortraitGroup.map((item) => (
+                                <motion.div
+                                  key={item.index}
+                                  className="project-modal-image-wrapper project-modal-image-side-by-side"
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: animationIndex * 0.1, duration: 0.4 }}
+                                >
+                                  <img
+                                    src={item.image}
+                                    alt={`${project.title} - Image ${item.index + 1}`}
+                                    className="project-modal-image"
+                                    onError={(e) => {
+                                      console.error('Image failed to load:', item.image);
+                                      (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${item.index + 1}`;
+                                    }}
+                                  />
+                                </motion.div>
+                              ))}
+                            </div>
+                          );
+                          animationIndex += currentPortraitGroup.length;
+                          currentPortraitGroup = [];
+                          portraitIndex++;
+                        }
+                        
+                        // Querformat-Bild einzeln anzeigen
+                        result.push(
+                          <motion.div
+                            key={originalIndex}
+                            className="project-modal-image-wrapper"
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: animationIndex * 0.1, duration: 0.4 }}
+                          >
+                            <img
+                              src={image}
+                              alt={`${project.title} - Image ${originalIndex + 1}`}
+                              className="project-modal-image"
+                              onError={(e) => {
+                                console.error('Image failed to load:', image);
+                                (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${originalIndex + 1}`;
+                              }}
+                            />
+                          </motion.div>
+                        );
+                        animationIndex++;
+                        landscapeIndex++;
+                      }
+                    });
+
+                    // Wenn noch Portrait-Bilder in der Gruppe sind
+                    if (currentPortraitGroup.length > 0) {
+                      result.push(
+                        <div key={`portrait-group-${portraitIndex}`} className="project-modal-images-row">
+                          {currentPortraitGroup.map((item) => (
+                            <motion.div
+                              key={item.index}
+                              className="project-modal-image-wrapper project-modal-image-side-by-side"
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: animationIndex * 0.1, duration: 0.4 }}
+                            >
+                              <img
+                                src={item.image}
+                                alt={`${project.title} - Image ${item.index + 1}`}
+                                className="project-modal-image"
+                                onError={(e) => {
+                                  console.error('Image failed to load:', item.image);
+                                  (e.target as HTMLImageElement).src = `https://via.placeholder.com/800x600/1a1a1a/FFFFFF?text=Image+${item.index + 1}`;
+                                }}
+                              />
+                            </motion.div>
+                          ))}
+                        </div>
+                      );
+                    }
+
+                    return result;
+                  })()}
                 </>
               ) : (
                 <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>

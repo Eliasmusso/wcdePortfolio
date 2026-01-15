@@ -10,6 +10,45 @@ function Footer() {
           className="footer-logo"
         />
       </div>
+      <div className="footer-copyright">
+        <p>Warcord Enterprise - All rights reserved</p>
+      </div>
+      <div className="footer-content">
+        <div className="footer-links">
+          <div className="footer-column">
+            <h4 className="footer-column-title">SOCIALS</h4>
+            <div className="footer-column-links">
+              <a 
+                href="https://linkedin.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="footer-link"
+              >
+                Linkedin
+              </a>
+              <a 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="footer-link"
+              >
+                Instagram
+              </a>
+            </div>
+          </div>
+          <div className="footer-column">
+            <h4 className="footer-column-title">BORING STUFF</h4>
+            <div className="footer-column-links">
+              <a href="#imprint" className="footer-link">
+                Imprint
+              </a>
+              <a href="#datenschutz" className="footer-link">
+                Datenschutz
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
     </footer>
   );
 }

@@ -22,16 +22,13 @@ function App() {
       <Header />
       <main>
         <section id="home" className="section section-home">
-          {/* Dot-Hintergrund AUSSERHALB des Containers */}
           <DotBackground
             dotColor="#555555"
             hoverColor="#e0001a"
             dotSize={2}
             spacing={20}
           />
-          
           <div className="container home-content">
-            {/* Vordergrund-Content */}
             <div className="home-hero">
               <p className="eyebrow">CREATIVE AGENCY · WCD(E)</p>
               <h1 className="hero-heading">

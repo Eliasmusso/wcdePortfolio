@@ -1,18 +1,25 @@
-import React from "react";
+import { useState, useRef, useEffect } from "react";
 
-const categories = ["Design", "Development", "KI Optimization"];
+const categories = ["Design", "Development", "KI Automation"];
+
+const SCROLL_THRESHOLDS = {
+  DESIGN: 0.45,
+  DEVELOPMENT: 0.6,
+  AUTOMATION: 0.8,
+} as const;
 
 // Tags, die bei bestimmten Kategorien hervorgehoben werden sollen
 const highlightedTagsByCategory: Record<number, string[]> = {
   0: [ // Design
     "Website", // webdesign
     "Website Development", // webdesign (alternative)
-    "3D Visualisation",
+    "3D Design",
     "Textile Design",
     "Digital Ad Campaigns",
     "Corporate Design",
     "Logo",
     "Branding", // logo branding
+    "Print Design",
   ],
   1: [ // Development
     "Website",
@@ -22,10 +29,9 @@ const highlightedTagsByCategory: Record<number, string[]> = {
     "User Experience Optimization",
     "Web Apps",
   ],
-  2: [ // KI Optimization
-    "Chatbot",
-    "3D Visualisation",
-    "Email Automatisation",
+  2: [ // KI Automation
+    "Invoice Automation",
+    "Email Automation",
   ],
 };
 
@@ -33,7 +39,7 @@ const highlightedTagsByCategory: Record<number, string[]> = {
 const serviceTagRows = [
   [
     { label: "Website" },
-    { label: "3D Visualisation" },
+    { label: "3D Design" },
     { label: "Textile Design" },
   ],
   [
@@ -41,9 +47,9 @@ const serviceTagRows = [
     { label: "Website Development" },
   ],
   [
-    { label: "Chatbot" },
-    { label: "Printdesign" },
-    { label: "Email Automatisation" },
+    { label: "Invoice Automation" },
+    { label: "Print Design" },
+    { label: "Email Automation" },
   ],
   [
     { label: "Web Apps" },
@@ -61,86 +67,108 @@ const serviceTagRows = [
   ],
 ];
 
-function ServicesSection() {
-  const [activeCategory, setActiveCategory] = React.useState(0); // Startet mit Design (0)
-  const sectionRef = React.useRef<HTMLElement | null>(null);
-  const activeCategoryRef = React.useRef(0);
+// Mobile: Tags gruppiert nach Kategorie
+const tagsByCategory: Record<number, string[]> = {
+  0: [ // Design
+    "Website",
+    "3D Design",
+    "Textile Design",
+    "Digital Ad Campaigns",
+    "Website Development",
+    "Print Design",
+    "Logo",
+    "Corporate Design",
+    "Branding",
+  ],
+  1: [ // Development
+    "Website",
+    "Webshop",
+    "SEO",
+    "User Interface Design",
+    "User Experience Optimization",
+    "Web Apps",
+  ],
+  2: [ // KI Automation
+    "Invoice Automation",
+    "Email Automation",
+  ],
+};
 
-  React.useEffect(() => {
+function ServicesSection() {
+  const [activeCategory, setActiveCategory] = useState(0);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const activeCategoryRef = useRef(0);
+
+  useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
 
+    let ticking = false;
     const handleScroll = () => {
-      // Prüfe ob Home-Section (id="home") den oberen Rand erreicht hat
-      const homeSection = document.querySelector("#home");
-      if (!homeSection) {
-        // Fallback: Starte sofort wenn Home-Section nicht gefunden wird
-        setActiveCategory(0);
-        return;
-      }
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const homeSection = document.querySelector("#home");
+          if (!homeSection) {
+            setActiveCategory(0);
+            ticking = false;
+            return;
+          }
 
-      const homeRect = homeSection.getBoundingClientRect();
-      const homeReachedTop = homeRect.top <= 0;
+          const homeRect = homeSection.getBoundingClientRect();
+          const homeReachedTop = homeRect.top <= 0;
 
-      // Wenn Home-Section noch nicht oben ist, setze erste Kategorie und beende
-      if (!homeReachedTop) {
-        setActiveCategory(0); // Design als Standard
-        return;
-      }
+          if (!homeReachedTop) {
+            setActiveCategory(0);
+            ticking = false;
+            return;
+          }
+          
+          const wrapper = section.parentElement;
+          if (!wrapper) {
+            ticking = false;
+            return;
+          }
+          
+          const wrapperRect = wrapper.getBoundingClientRect();
+          const windowHeight = window.innerHeight;
+          const wrapperTop = wrapperRect.top;
+          const wrapperHeight = wrapperRect.height;
+          
+          const scrollStart = windowHeight;
+          const scrollEnd = -wrapperHeight;
+          const scrollRange = scrollStart - scrollEnd;
+          const currentScroll = scrollStart - wrapperTop;
+          
+          const scrollProgress = Math.min(1, Math.max(0, currentScroll / scrollRange));
 
-      // Ab hier: Home-Section ist oben, Animation kann starten
-      // Berechne Scroll-Progress basierend auf dem Scrollen durch den Services-Wrapper
-      
-      const wrapper = section.parentElement;
-      if (!wrapper) return;
-      
-      const wrapperRect = wrapper.getBoundingClientRect();
-      const windowHeight = window.innerHeight;
-      
-      // Berechne Scroll-Progress basierend auf der Position des Wrappers
-      // Progress = 0: Wrapper erscheint gerade im Viewport (wrapperTop = windowHeight)
-      // Progress = 1: Wrapper ist komplett durchgescrollt (wrapperTop = -wrapperHeight)
-      let scrollProgress = 0;
-      
-      const wrapperTop = wrapperRect.top;
-      const wrapperHeight = wrapperRect.height;
-      
-      // Berechne Progress basierend auf dem Scrollen durch den Wrapper
-      const scrollStart = windowHeight; // Punkt, wo Wrapper erscheint
-      const scrollEnd = -wrapperHeight; // Punkt, wo Wrapper komplett durchgescrollt ist
-      const scrollRange = scrollStart - scrollEnd; // Gesamter Scroll-Bereich
-      const currentScroll = scrollStart - wrapperTop; // Aktuelle Scroll-Position
-      
-      scrollProgress = Math.min(1, Math.max(0, currentScroll / scrollRange));
-
-      // Teile die Section in 3 Bereiche
-      // Design: 0-45%, Development: 45-60%, KI Optimization: 60-80%
-      let newCategory = 0;
-      if (scrollProgress < 0.45) {
-        newCategory = 0; // Design
-      } else if (scrollProgress < 0.6) {
-        newCategory = 1; // Development
-      } else if (scrollProgress < 0.8) {
-        newCategory = 2; // KI Optimization
-      } else {
-        newCategory = 2; // KI Optimization bleibt aktiv
-      }
-      
-      // Aktualisiere immer, auch wenn sich der Wert nicht geändert hat (für initiales Rendering)
-      if (newCategory !== activeCategoryRef.current) {
-        activeCategoryRef.current = newCategory;
-        setActiveCategory(newCategory);
-      } else if (activeCategory !== newCategory) {
-        // Fallback: Wenn State nicht mit Ref übereinstimmt, synchronisiere
-        setActiveCategory(newCategory);
+          let newCategory = 0;
+          if (scrollProgress < SCROLL_THRESHOLDS.DESIGN) {
+            newCategory = 0;
+          } else if (scrollProgress < SCROLL_THRESHOLDS.DEVELOPMENT) {
+            newCategory = 1;
+          } else if (scrollProgress < SCROLL_THRESHOLDS.AUTOMATION) {
+            newCategory = 2;
+          } else {
+            newCategory = 2;
+          }
+          
+          if (newCategory !== activeCategoryRef.current) {
+            activeCategoryRef.current = newCategory;
+            setActiveCategory(newCategory);
+          } else if (activeCategory !== newCategory) {
+            setActiveCategory(newCategory);
+          }
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll(); // Initial call
+    handleScroll();
 
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [activeCategory]);
 
   return (
     <div className="services-wrapper">
@@ -150,7 +178,7 @@ function ServicesSection() {
         className="section section-services"
       >
         <div className="container">
-          <div className="services-layout">
+          <div className="services-layout services-layout-desktop">
             <header className="services-header">
               <h2 className="portfolio-heading">SERVICES</h2>
             </header>
@@ -191,6 +219,41 @@ function ServicesSection() {
               </div>
             </div>
           </div>
+
+          <div className="services-layout services-layout-mobile">
+            <header className="services-header">
+              <h2 className="portfolio-heading">SERVICES</h2>
+            </header>
+            
+            {categories.map((cat, catIndex) => {
+              const isActiveGroup = activeCategory === catIndex;
+              return (
+                <div 
+                  key={cat} 
+                  className={`services-mobile-group ${isActiveGroup ? "services-mobile-group-active" : ""}`}
+                >
+                  <div 
+                    className={`services-category accent-heading services-category-mobile ${
+                      isActiveGroup ? "services-category-active" : ""
+                    }`}
+                  >
+                    {cat}
+                  </div>
+                  <div className="services-tags-mobile">
+                    {tagsByCategory[catIndex]?.map((tagLabel) => (
+                      <button
+                        key={tagLabel}
+                        type="button"
+                        className={isActiveGroup ? "service-tag service-tag-hot" : "service-tag"}
+                      >
+                        {tagLabel}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
     </div>
@@ -198,5 +261,3 @@ function ServicesSection() {
 }
 
 export default ServicesSection;
-
-

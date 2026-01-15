@@ -4,41 +4,41 @@ function ContactSection() {
       <div className="container">
         <header className="section-header" style={{ textAlign: "left", paddingLeft: "2rem", maxWidth: "none", width: "100%" }}>
           <h2 className="hero-heading" style={{ fontSize: "clamp(3.1rem, 5.6vw, 4.4rem)" }}>
-            KONTAKT
+            CONTACT
           </h2>
-          <p className="section-intro">
-            Platzhalter für dein Kontaktformular und direkte Kontaktdaten.
-          </p>
         </header>
 
         <div className="contact-layout" style={{ marginTop: "2.6rem" }}>
           <form className="contact-form glass">
             <div className="form-field">
-              <label htmlFor="name">Name</label>
-              <input id="name" name="name" type="text" />
+              <label htmlFor="name">Name *</label>
+              <input id="name" name="name" type="text" required />
             </div>
             <div className="form-field">
               <label htmlFor="email">E-Mail *</label>
               <input id="email" name="email" type="email" required />
             </div>
             <div className="form-field">
-              <label htmlFor="service">Dienstleistung</label>
-              <select id="service" name="service" className="form-select">
+              <label htmlFor="service">Service *</label>
+              <select id="service" name="service" className="form-select" required>
                 <option value="">Bitte wählen...</option>
                 <option value="webdesign">Webdesign</option>
                 <option value="brand-identity">Brand Identity</option>
-                <option value="webshops">Webshops</option>
-                <option value="3d-animation">3D-Animation</option>
+                <option value="webshop">Webshop</option>
+                <option value="3d-design">3D Design</option>
+                <option value="ki-automation">KI Automation</option>
               </select>
             </div>
             <div className="form-field">
               <label htmlFor="budget">Budget</label>
-              <select id="budget" name="budget" className="form-select">
-                <option value="">Bitte wählen...</option>
-                <option value="<5000">&lt; 5.000 €</option>
-                <option value="5000-15000">5.000 – 15.000 €</option>
-                <option value=">15000">&gt; 15.000 €</option>
-              </select>
+              <input 
+                id="budget" 
+                name="budget" 
+                type="number" 
+                placeholder="Available Budget"
+                min="0"
+                step="100"
+              />
             </div>
             <div className="form-field">
               <label htmlFor="message">Nachricht *</label>
@@ -50,11 +50,36 @@ function ContactSection() {
           </form>
 
           <aside className="contact-card glass">
-            <h3 className="accent-heading">Direct Contact</h3>
-            <p>
-              Hier kannst du deine direkten Kontaktdaten oder ein kurzes
-              Onboarding-Statement platzieren.
+            <p className="contact-location">
+              Based in Berlin & Konstanz, operating internationally
             </p>
+            <div className="social-links">
+              <a 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="social-link"
+                aria-label="Instagram"
+              >
+                Instagram
+              </a>
+              <a 
+                href="https://linkedin.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="social-link"
+                aria-label="LinkedIn"
+              >
+                LinkedIn
+              </a>
+              <a 
+                href="mailto:contact@example.com" 
+                className="social-link"
+                aria-label="Email"
+              >
+                Email
+              </a>
+            </div>
           </aside>
         </div>
       </div>

@@ -6,8 +6,10 @@ const navItems = [
   { id: "home", label: "Home" },
   { id: "services", label: "Services" },
   { id: "portfolio", label: "Portfolio" },
-  { id: "contact", label: "Contact" },
+  { id: "about", label: "About Us" },
 ];
+
+const AUTO_COLLAPSE_DELAY = 5000;
 
 function Header() {
   const [active, setActive] = useState<string>("home");
@@ -36,7 +38,7 @@ function Header() {
     clearCollapseTimer();
     timeoutRef.current = window.setTimeout(() => {
       setExpanded(false);
-    }, 5000);
+    }, AUTO_COLLAPSE_DELAY);
 
     return clearCollapseTimer;
   }, [expanded, interactionTick, isHovering]);
@@ -110,5 +112,3 @@ function Header() {
 }
 
 export default Header;
-
-

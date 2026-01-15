@@ -1,39 +1,39 @@
 import { useRef, useState, Suspense } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import logoWhite from "../assets/assets/WCD(E)_LogoWeiß.svg";
 import Spline from '@splinetool/react-spline';
+import { Download } from "lucide-react";
+import logoWhite from "../assets/assets/WCD(E)_LogoWeiß.svg";
 
-
-// Scroll-basierte Buchstaben-Reveal Komponente mit Logo
-function ScrollRevealText({ text, scrollProgress, startProgress = 0, endProgress = 1 }: {
+interface ScrollRevealTextProps {
   text: string;
   scrollProgress: any;
   startProgress?: number;
   endProgress?: number;
-}) {
-  // Text in Wörter aufteilen und WCD(E) durch Logo ersetzen
+}
+
+const DELAY_FACTOR = 0.3;
+const LOGO_CHAR_COUNT = 5;
+const LETTER_OPACITY_RANGE = [0.2, 1];
+const LETTER_WIDTH_FACTOR = 0.8;
+
+function ScrollRevealText({ text, scrollProgress, startProgress = 0, endProgress = 1 }: ScrollRevealTextProps) {
   const words = text.split(" ");
   let letterIndex = 0;
-  
-  // Der Effekt betrifft den gesamten Text, startet aber später im Scroll-Verlauf
-  // Verschiebe den Start des Reveal-Effekts zeitlich nach hinten (z.B. bei 30% des Scroll-Progress)
-  const delayedStartProgress = startProgress + 0.3 * (endProgress - startProgress);
+  const delayedStartProgress = startProgress + DELAY_FACTOR * (endProgress - startProgress);
   
   return (
     <span className="scroll-reveal-text">
       {words.map((word, wordIndex) => {
         if (word === "WCD(E)") {
-          // Logo anstelle von WCD(E) Text
-          // Der Effekt betrifft den gesamten Text, startet aber später
           const logoStart = delayedStartProgress + (letterIndex / text.length) * (endProgress - delayedStartProgress);
-          const logoEnd = logoStart + (5 / text.length) * (endProgress - delayedStartProgress);
+          const logoEnd = logoStart + (LOGO_CHAR_COUNT / text.length) * (endProgress - delayedStartProgress);
           
           const logoOpacity = useTransform(
             scrollProgress,
             [logoStart, logoEnd],
-            [0.2, 1]
+            LETTER_OPACITY_RANGE
           );
-          letterIndex += 5; // WCD(E) hat 5 Zeichen
+          letterIndex += LOGO_CHAR_COUNT;
           
             return (
               <motion.span
@@ -45,17 +45,15 @@ function ScrollRevealText({ text, scrollProgress, startProgress = 0, endProgress
               </motion.span>
             );
         } else {
-          // Normale Buchstaben
           const letters = word.split("");
           const wordElements = letters.map((letter, letterIdx) => {
-            // Der Effekt betrifft den gesamten Text, startet aber später
             const letterStart = delayedStartProgress + (letterIndex / text.length) * (endProgress - delayedStartProgress);
-            const letterEnd = letterStart + (0.8 / text.length) * (endProgress - delayedStartProgress);
+            const letterEnd = letterStart + (LETTER_WIDTH_FACTOR / text.length) * (endProgress - delayedStartProgress);
             
             const letterOpacity = useTransform(
               scrollProgress,
               [letterStart, letterEnd],
-              [0.2, 1]
+              LETTER_OPACITY_RANGE
             );
             
             letterIndex++;
@@ -71,16 +69,14 @@ function ScrollRevealText({ text, scrollProgress, startProgress = 0, endProgress
             );
           });
           
-          // Leerzeichen nach dem Wort hinzufügen (außer beim letzten Wort)
           if (wordIndex < words.length - 1) {
-            // Der Effekt betrifft den gesamten Text, startet aber später
             const spaceStart = delayedStartProgress + (letterIndex / text.length) * (endProgress - delayedStartProgress);
             const spaceEnd = spaceStart + (1 / text.length) * (endProgress - delayedStartProgress);
             
             const spaceOpacity = useTransform(
               scrollProgress,
               [spaceStart, spaceEnd],
-              [0.2, 1]
+              LETTER_OPACITY_RANGE
             );
             letterIndex++;
             
@@ -215,6 +211,16 @@ function AboutSection() {
                   </span>
                 ))}
               </div>
+              {currentPerson === 'elias' && (
+                <a 
+                  href="/assets/CV_Elias_Musso.pdf" 
+                  download="CV_Elias_Musso.pdf"
+                  className="cv-download-btn"
+                >
+                  <Download className="cv-download-icon" />
+                  DOWNLOAD CV
+                </a>
+              )}
             </div>
           </motion.div>
         </div>
