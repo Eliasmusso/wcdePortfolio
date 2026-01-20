@@ -3,10 +3,10 @@ import { motion } from "framer-motion";
 import logoSvg from "../assets/assets/logo.svg";
 
 const navItems = [
-  { id: "home", label: "Home" },
-  { id: "services", label: "Services" },
-  { id: "portfolio", label: "Portfolio" },
-  { id: "about", label: "About Us" },
+  { id: "home", label: "Home", mobileLabel: "Home" },
+  { id: "services", label: "Services", mobileLabel: "Services" },
+  { id: "portfolio", label: "Portfolio", mobileLabel: "Portfolio" },
+  { id: "about", label: "About Us", mobileLabel: "About" },
 ];
 
 const AUTO_COLLAPSE_DELAY = 5000;
@@ -16,7 +16,18 @@ function Header() {
   const [expanded, setExpanded] = useState(false);
   const [interactionTick, setInteractionTick] = useState(0);
   const [isHovering, setIsHovering] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const timeoutRef = useRef<number | null>(null);
+
+  // Check if mobile viewport
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const clearCollapseTimer = () => {
     if (timeoutRef.current !== null) {
@@ -90,7 +101,7 @@ function Header() {
                         bumpInteraction();
                       }}
                     >
-                      <a href={`#${item.id}`}>{item.label}</a>
+                      <a href={`#${item.id}`}>{isMobile ? item.mobileLabel : item.label}</a>
                     </li>
                   ))}
                 </ul>

@@ -10,10 +10,10 @@ function Footer() {
           className="footer-logo"
         />
       </div>
-      <div className="footer-copyright">
-        <p>Warcord Enterprise - All rights reserved</p>
-      </div>
-      <div className="footer-content">
+      <div className="footer-bottom">
+        <div className="footer-copyright">
+          <p>Warcord Enterprise - All rights reserved</p>
+        </div>
         <div className="footer-links">
           <div className="footer-column">
             <h4 className="footer-column-title">SOCIALS</h4>

@@ -106,7 +106,7 @@ function AboutSection() {
   // Scroll-Progress spezifisch für den Text-Container
   const { scrollYProgress } = useScroll({
     target: textContainerRef,
-    offset: ["start end", "start start"] // Von "Container startet unten im Viewport" bis "Container erreicht oben im Viewport"
+    offset: ["start end", "center start"] // Mittelweg - Effekt endet wenn Mitte des Containers oben im Viewport ist
   });
   
   // Logo erscheint früh und schnell

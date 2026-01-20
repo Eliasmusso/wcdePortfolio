@@ -67,11 +67,18 @@ function ProjectDetailModal({ isOpen, onClose, project }: ProjectDetailModalProp
       document.addEventListener("keydown", handleEscape);
       // Prevent body scroll when modal is open
       document.body.style.overflow = "hidden";
+      // Add class to body to hide header
+      document.body.classList.add("modal-open");
+      // Also add to html element for extra specificity
+      document.documentElement.classList.add("modal-open");
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
+      // Remove class from body to show header again
+      document.body.classList.remove("modal-open");
+      document.documentElement.classList.remove("modal-open");
     };
   }, [isOpen, onClose]);
 

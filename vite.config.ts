@@ -18,8 +18,15 @@ export default defineConfig({
   },
   base: "./", // Relative paths for GitHub Pages compatibility
   server: {
-    host: '0.0.0.0', // Erlaubt Zugriff über das lokale Netzwerk
+    host: '0.0.0.0',
     port: 5173,
+    hmr: {
+      overlay: true,
+    },
+    watch: {
+      usePolling: true,
+      interval: 100,
+    },
   }
 });
 

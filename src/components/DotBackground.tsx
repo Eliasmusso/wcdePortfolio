@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import "./DotBackground.css";
 
 interface DotBackgroundProps {
@@ -11,8 +11,12 @@ interface DotBackgroundProps {
 interface Dot {
   x: number;
   y: number;
-  id: number;
-  size: number;
+  baseSize: number;
+  currentSize: number;
+  targetSize: number;
+  currentOpacity: number;
+  targetOpacity: number;
+  isHighlighted: boolean;
 }
 
 interface TrailPoint {
@@ -21,92 +25,41 @@ interface TrailPoint {
   timestamp: number;
 }
 
-const TRAIL_LIFETIME = 1200;
-const THROTTLE_DELAY = 16;
-const MOUSE_INFLUENCE_RADIUS = 180;
-const TRAIL_INFLUENCE_RADIUS = 160;
-const TRAIL_MAX_POINTS = 30;
+const TRAIL_LIFETIME = 600;
+const MOUSE_INFLUENCE_RADIUS = 120;
+const TRAIL_INFLUENCE_RADIUS = 100;
+const TRAIL_MAX_POINTS = 20;
 const HERO_RADIUS = 260;
-const DOT_MARGIN = 100;
-const DEFAULT_WIDTH = 1200;
-const DEFAULT_HEIGHT = 800;
+const DOT_MARGIN = 50;
 const OPACITY_BASE = 0.7;
-const SCALE_MULTIPLIER = 1.8;
-const OPACITY_BOOST = 0.6;
-const HIGHLIGHT_THRESHOLD = 0.15;
-const MAX_INFLUENCE_THRESHOLD = 0.99;
+const SCALE_MULTIPLIER = 2.0;
+const LERP_SPEED = 0.15;
 
 export function DotBackground({
   dotColor = "#555555",
   hoverColor = "#e0001a",
   dotSize = 1.5,
-  spacing = 20,
+  spacing = 22,
 }: DotBackgroundProps) {
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const [trail, setTrail] = useState<TrailPoint[]>([]);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const dotsRef = useRef<Dot[]>([]);
+  const mousePosRef = useRef<{ x: number; y: number } | null>(null);
+  const trailRef = useRef<TrailPoint[]>([]);
   const animationFrameRef = useRef<number | null>(null);
-  const mouseMoveTimeoutRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number>(0);
 
-  useEffect(() => {
-    const updateTrail = () => {
-      const now = Date.now();
-      setTrail((prev) =>
-        prev.filter((point) => now - point.timestamp < TRAIL_LIFETIME)
-      );
-      animationFrameRef.current = requestAnimationFrame(updateTrail);
-    };
-    animationFrameRef.current = requestAnimationFrame(updateTrail);
-    return () => {
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-    };
-  }, []);
+  // Lerp function for smooth interpolation
+  const lerp = (start: number, end: number, factor: number) => {
+    return start + (end - start) * factor;
+  };
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (mouseMoveTimeoutRef.current) {
-        return;
-      }
+  // Initialize dots
+  const initDots = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-      mouseMoveTimeoutRef.current = window.setTimeout(() => {
-        mouseMoveTimeoutRef.current = null;
-      }, THROTTLE_DELAY);
-
-      const rect = e.currentTarget.getBoundingClientRect();
-      const newPos = {
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      };
-      setMousePos(newPos);
-
-      setTrail((prev) => {
-        const now = Date.now();
-        const filtered = prev.filter((p) => now - p.timestamp < TRAIL_LIFETIME);
-        if (filtered.length === 0 || now - filtered[filtered.length - 1].timestamp > THROTTLE_DELAY) {
-          const newTrail = [
-            ...filtered,
-            { ...newPos, timestamp: now },
-          ];
-          return newTrail.slice(-TRAIL_MAX_POINTS);
-        }
-        return filtered;
-      });
-    },
-    []
-  );
-
-  const handleMouseLeave = useCallback(() => {
-    setMousePos(null);
-    if (mouseMoveTimeoutRef.current) {
-      clearTimeout(mouseMoveTimeoutRef.current);
-      mouseMoveTimeoutRef.current = null;
-    }
-  }, []);
-
-  const dots = useMemo(() => {
-    const containerWidth = typeof window !== "undefined" ? window.innerWidth : DEFAULT_WIDTH;
-    const containerHeight = typeof window !== "undefined" ? window.innerHeight : DEFAULT_HEIGHT;
+    const containerWidth = canvas.width;
+    const containerHeight = canvas.height;
     
     let centerX = containerWidth / 2;
     let centerY = containerHeight / 2;
@@ -116,8 +69,6 @@ export function DotBackground({
       const rect = h1Element.getBoundingClientRect();
       centerX = rect.left + rect.width / 2;
       centerY = rect.top + rect.height / 2;
-      centerX = Math.max(0, Math.min(containerWidth, centerX));
-      centerY = Math.max(0, Math.min(containerHeight, centerY));
     }
     
     const dotsArray: Dot[] = [];
@@ -140,34 +91,33 @@ export function DotBackground({
         dotsArray.push({
           x,
           y,
-          id: Math.floor(x / spacing) * 1000 + Math.floor(y / spacing),
-          size: calculatedSize,
+          baseSize: calculatedSize,
+          currentSize: calculatedSize,
+          targetSize: calculatedSize,
+          currentOpacity: OPACITY_BASE,
+          targetOpacity: OPACITY_BASE,
+          isHighlighted: false,
         });
       }
     }
     
-    return dotsArray;
+    dotsRef.current = dotsArray;
   }, [spacing, dotSize]);
 
-  const getDotStyle = useCallback(
-    (dot: Dot) => {
-      const baseStyle = {
-        left: `${dot.x}px`,
-        top: `${dot.y}px`,
-        width: `${dot.size}px`,
-        height: `${dot.size}px`,
-        backgroundColor: dotColor,
-        transform: "scale(1)",
-        opacity: OPACITY_BASE,
-      };
+  // Update dot targets based on mouse position
+  const updateDotTargets = useCallback(() => {
+    const dots = dotsRef.current;
+    const mousePos = mousePosRef.current;
+    const trail = trailRef.current;
+    const now = Date.now();
 
-      if (!mousePos && trail.length === 0) {
-        return baseStyle;
-      }
+    // Clean old trail points
+    trailRef.current = trail.filter(p => now - p.timestamp < TRAIL_LIFETIME);
 
-      const now = Date.now();
+    for (const dot of dots) {
       let maxInfluence = 0;
 
+      // Mouse influence
       if (mousePos) {
         const dx = dot.x - mousePos.x;
         const dy = dot.y - mousePos.y;
@@ -176,11 +126,9 @@ export function DotBackground({
         maxInfluence = Math.max(maxInfluence, influence);
       }
 
-      for (let i = trail.length - 1; i >= 0; i--) {
-        const trailPoint = trail[i];
+      // Trail influence
+      for (const trailPoint of trailRef.current) {
         const age = now - trailPoint.timestamp;
-        if (age > TRAIL_LIFETIME) continue;
-        
         const dx = dot.x - trailPoint.x;
         const dy = dot.y - trailPoint.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -189,38 +137,128 @@ export function DotBackground({
         
         const ageFactor = Math.max(0, 1 - age / TRAIL_LIFETIME);
         const distanceInfluence = Math.max(0, 1 - distance / TRAIL_INFLUENCE_RADIUS);
-        const combinedInfluence = distanceInfluence * ageFactor * 0.85;
+        const combinedInfluence = distanceInfluence * ageFactor * 0.9;
         maxInfluence = Math.max(maxInfluence, combinedInfluence);
-        
-        if (maxInfluence >= MAX_INFLUENCE_THRESHOLD) break;
       }
 
-      const scaleFactor = 1 + maxInfluence * SCALE_MULTIPLIER;
-      const opacityBoost = maxInfluence * OPACITY_BOOST;
+      // Set targets
+      dot.targetSize = dot.baseSize * (1 + maxInfluence * SCALE_MULTIPLIER);
+      dot.targetOpacity = Math.min(1, OPACITY_BASE + maxInfluence * 0.5);
+      dot.isHighlighted = maxInfluence > 0.1;
+    }
+  }, []);
 
-      return {
-        ...baseStyle,
-        backgroundColor: maxInfluence > HIGHLIGHT_THRESHOLD ? hoverColor : dotColor,
-        transform: `scale(${scaleFactor})`,
-        opacity: Math.min(1, baseStyle.opacity + opacityBoost),
-      };
-    },
-    [mousePos, trail, dotColor, hoverColor]
-  );
+  // Render loop
+  const render = useCallback((timestamp: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) {
+      animationFrameRef.current = requestAnimationFrame(render);
+      return;
+    }
+
+    // Delta time for consistent animation speed
+    const deltaTime = Math.min((timestamp - lastTimeRef.current) / 16.67, 2);
+    lastTimeRef.current = timestamp;
+
+    // Update targets
+    updateDotTargets();
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Parse colors
+    const baseColor = dotColor;
+    const highlightColor = hoverColor;
+
+    // Draw dots with smooth interpolation
+    for (const dot of dotsRef.current) {
+      // Smooth interpolation
+      dot.currentSize = lerp(dot.currentSize, dot.targetSize, LERP_SPEED * deltaTime);
+      dot.currentOpacity = lerp(dot.currentOpacity, dot.targetOpacity, LERP_SPEED * deltaTime);
+
+      // Draw dot
+      ctx.beginPath();
+      ctx.arc(dot.x, dot.y, dot.currentSize / 2, 0, Math.PI * 2);
+      ctx.fillStyle = dot.isHighlighted ? highlightColor : baseColor;
+      ctx.globalAlpha = dot.currentOpacity;
+      ctx.fill();
+    }
+
+    ctx.globalAlpha = 1;
+
+    animationFrameRef.current = requestAnimationFrame(render);
+  }, [dotColor, hoverColor, updateDotTargets]);
+
+  // Handle mouse move
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const newPos = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+    
+    mousePosRef.current = newPos;
+
+    // Add to trail
+    const now = Date.now();
+    const trail = trailRef.current;
+    if (trail.length === 0 || now - trail[trail.length - 1].timestamp > 20) {
+      trailRef.current = [...trail.slice(-TRAIL_MAX_POINTS + 1), { ...newPos, timestamp: now }];
+    }
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    mousePosRef.current = null;
+  }, []);
+
+  // Setup canvas and event listeners
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const resizeCanvas = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.scale(dpr, dpr);
+      }
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      initDots();
+    };
+
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Start animation loop
+    lastTimeRef.current = performance.now();
+    animationFrameRef.current = requestAnimationFrame(render);
+
+    // Add event listeners
+    canvas.addEventListener('mousemove', handleMouseMove);
+    canvas.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      window.removeEventListener('resize', resizeCanvas);
+      canvas.removeEventListener('mousemove', handleMouseMove);
+      canvas.removeEventListener('mouseleave', handleMouseLeave);
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [initDots, render, handleMouseMove, handleMouseLeave]);
 
   return (
-    <div
+    <canvas
+      ref={canvasRef}
       className="dot-background"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-    >
-      {dots.map((dot) => (
-        <div
-          key={dot.id}
-          className="dot"
-          style={getDotStyle(dot)}
-        />
-      ))}
-    </div>
+    />
   );
 }
