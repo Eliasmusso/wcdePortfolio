@@ -18,7 +18,7 @@ export default defineConfig({
   },
   base: "./", // Relative paths for GitHub Pages compatibility
   server: {
-    host: '0.0.0.0',
+    host: '127.0.0.1',
     port: 5173,
     hmr: {
       overlay: true,

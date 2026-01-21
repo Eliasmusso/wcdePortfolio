@@ -26,9 +26,9 @@ interface TrailPoint {
 }
 
 const TRAIL_LIFETIME = 600;
-const MOUSE_INFLUENCE_RADIUS = 120;
-const TRAIL_INFLUENCE_RADIUS = 100;
-const TRAIL_MAX_POINTS = 20;
+const MOUSE_INFLUENCE_RADIUS = 140;
+const TRAIL_INFLUENCE_RADIUS = 120;
+const TRAIL_MAX_POINTS = 25;
 const DOT_MARGIN = 50;
 
 // Dynamic hero radius based on viewport
@@ -37,8 +37,8 @@ const getHeroRadius = () => {
   return window.innerWidth <= 768 ? 140 : 260;
 };
 const OPACITY_BASE = 0.7;
-const SCALE_MULTIPLIER = 2.0;
-const LERP_SPEED = 0.15;
+const SCALE_MULTIPLIER = 2.2;
+const LERP_SPEED = 0.28; // Increased for smoother animation
 
 export function DotBackground({
   dotColor = "#555555",
@@ -53,9 +53,13 @@ export function DotBackground({
   const animationFrameRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(0);
 
-  // Lerp function for smooth interpolation
+  // Smooth exponential lerp function for fluid animation
   const lerp = (start: number, end: number, factor: number) => {
-    return start + (end - start) * factor;
+    // Use exponential interpolation for smoother, more natural movement
+    const diff = end - start;
+    // Clamp factor to prevent overshooting
+    const clampedFactor = Math.min(factor, 1);
+    return start + diff * clampedFactor;
   };
 
   // Initialize dots
@@ -70,17 +74,9 @@ export function DotBackground({
     // Get dynamic hero radius based on viewport (in device pixels)
     const heroRadius = getHeroRadius() * dpr;
     
-    let centerX = containerWidth / 2;
-    let centerY = containerHeight / 2;
-    
-    const h1Element = document.querySelector('.hero-heading');
-    if (h1Element) {
-      const rect = h1Element.getBoundingClientRect();
-      const canvasRect = canvas.getBoundingClientRect();
-      // Convert CSS pixels to device pixels
-      centerX = (rect.left + rect.width / 2 - canvasRect.left) * dpr;
-      centerY = (rect.top + rect.height / 2 - canvasRect.top) * dpr;
-    }
+    // Always center the circle in the middle of the canvas
+    const centerX = containerWidth / 2;
+    const centerY = containerHeight / 2;
     
     const dotsArray: Dot[] = [];
     const maxDistance = Math.max(containerWidth, containerHeight) * 0.8;
@@ -184,9 +180,10 @@ export function DotBackground({
 
     // Draw dots with smooth interpolation
     for (const dot of dotsRef.current) {
-      // Smooth interpolation
-      dot.currentSize = lerp(dot.currentSize, dot.targetSize, LERP_SPEED * deltaTime);
-      dot.currentOpacity = lerp(dot.currentOpacity, dot.targetOpacity, LERP_SPEED * deltaTime);
+      // Smooth interpolation with adaptive speed based on deltaTime
+      const lerpFactor = LERP_SPEED * Math.min(deltaTime, 1.5);
+      dot.currentSize = lerp(dot.currentSize, dot.targetSize, lerpFactor);
+      dot.currentOpacity = lerp(dot.currentOpacity, dot.targetOpacity, lerpFactor);
 
       // Draw dot
       ctx.beginPath();
@@ -217,10 +214,10 @@ export function DotBackground({
     
     mousePosRef.current = newPos;
 
-    // Add to trail
+    // Add to trail with higher frequency for smoother animation
     const now = Date.now();
     const trail = trailRef.current;
-    if (trail.length === 0 || now - trail[trail.length - 1].timestamp > 20) {
+    if (trail.length === 0 || now - trail[trail.length - 1].timestamp > 10) {
       trailRef.current = [...trail.slice(-TRAIL_MAX_POINTS + 1), { ...newPos, timestamp: now }];
     }
   }, []);
@@ -256,7 +253,7 @@ export function DotBackground({
   const handleTouchMove = useCallback((e: TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas || e.touches.length === 0) return;
-
+    
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
     const dpr = window.devicePixelRatio || 1;
@@ -270,10 +267,10 @@ export function DotBackground({
     
     mousePosRef.current = newPos;
 
-    // Add to trail
+    // Add to trail with higher frequency for smoother animation
     const now = Date.now();
     const trail = trailRef.current;
-    if (trail.length === 0 || now - trail[trail.length - 1].timestamp > 20) {
+    if (trail.length === 0 || now - trail[trail.length - 1].timestamp > 10) {
       trailRef.current = [...trail.slice(-TRAIL_MAX_POINTS + 1), { ...newPos, timestamp: now }];
     }
   }, []);
@@ -299,11 +296,18 @@ export function DotBackground({
       }
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
-      initDots();
+      // Small delay to ensure DOM is ready, especially on mobile
+      setTimeout(() => {
+        initDots();
+      }, 50);
     };
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    // Also listen for orientation changes on mobile
+    window.addEventListener('orientationchange', () => {
+      setTimeout(resizeCanvas, 100);
+    });
 
     // Start animation loop
     lastTimeRef.current = performance.now();
@@ -320,6 +324,7 @@ export function DotBackground({
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('orientationchange', resizeCanvas);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       // Touch cleanup
