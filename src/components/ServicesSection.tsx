@@ -12,7 +12,6 @@ const SCROLL_THRESHOLDS = {
 const highlightedTagsByCategory: Record<number, string[]> = {
   0: [ // Design
     "Website", // webdesign
-    "Website Development", // webdesign (alternative)
     "3D Design",
     "Textile Design",
     "Digital Ad Campaigns",
@@ -23,6 +22,7 @@ const highlightedTagsByCategory: Record<number, string[]> = {
   ],
   1: [ // Development
     "Website",
+    "Website Development",
     "Webshop",
     "SEO",
     "User Interface Design",
@@ -74,7 +74,6 @@ const tagsByCategory: Record<number, string[]> = {
     "3D Design",
     "Textile Design",
     "Digital Ad Campaigns",
-    "Website Development",
     "Print Design",
     "Logo",
     "Corporate Design",
@@ -82,6 +81,7 @@ const tagsByCategory: Record<number, string[]> = {
   ],
   1: [ // Development
     "Website",
+    "Website Development",
     "Webshop",
     "SEO",
     "User Interface Design",

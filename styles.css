@@ -797,13 +797,40 @@ html.modal-open .site-header {
 
 /* PORTFOLIO CAROUSEL --------------------------------------------------------- */
 .section-portfolio {
-  overflow: hidden;
+  overflow: visible;
   background-color: #050505;
   color: #f8f8f8;
   position: relative;
   min-height: 100vh;
   z-index: 10;
   isolation: isolate;
+}
+
+.portfolio-header-wrapper {
+  position: fixed;
+  top: 7vh;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: transparent;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(50px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.portfolio-header-wrapper.sticky {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.portfolio-header-wrapper .container,
+.portfolio-header-wrapper .section-header {
+  pointer-events: auto;
+}
+
+.section-portfolio .section-header {
+  background: transparent;
 }
 
 .portfolio-heading,
@@ -2236,9 +2263,22 @@ h2.portfolio-heading {
 }
 
 .scroll-reveal-letter {
-  display: inline-block;
+  display: inline;
   will-change: opacity;
   color: #ffffff;
+}
+
+/* Word wrapper to prevent word-breaking */
+.scroll-reveal-word {
+  display: inline;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+/* Space between words */
+.scroll-reveal-space {
+  display: inline;
+  white-space: pre;
 }
 
 .scroll-text-container .scroll-reveal-text,
@@ -2541,6 +2581,10 @@ h2.portfolio-heading {
   }
   
   /* ========== PORTFOLIO ========== */
+  .portfolio-header-wrapper {
+    top: 10vh !important;
+  }
+
   .section-portfolio .section-header {
     text-align: center !important;
     padding-left: 0 !important;
@@ -2631,6 +2675,10 @@ h2.portfolio-heading {
   }
   
   /* ========== PORTFOLIO ========== */
+  .portfolio-header-wrapper {
+    top: 10vh !important;
+  }
+
   .section-portfolio .section-header {
     text-align: center !important;
     padding-left: 0 !important;
@@ -2836,14 +2884,14 @@ h2.portfolio-heading {
     text-align: center;
     width: 100%;
     margin: 0 auto;
-    order: 1;
+    order: 0;
   }
 
   .footer-links {
     gap: 2rem;
     flex-wrap: wrap;
     justify-content: center;
-    order: 0;
+    order: 1;
   }
 
   .footer-column {
@@ -3095,6 +3143,10 @@ h2.portfolio-heading {
   }
   
   /* ========== PORTFOLIO ========== */
+  .portfolio-header-wrapper {
+    top: 10vh !important;
+  }
+
   .section-portfolio .section-header {
     text-align: center !important;
     padding-left: 0 !important;
@@ -3229,7 +3281,7 @@ h2.portfolio-heading {
     text-align: center;
     width: 100%;
     margin: 0 auto;
-    order: 1;
+    order: 0;
   }
 
   .footer-legal {

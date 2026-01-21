@@ -1,97 +1,134 @@
-import { useRef, useState, Suspense } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useRef, useState, Suspense, useEffect, useLayoutEffect } from "react";
+import { motion } from "framer-motion";
 import Spline from '@splinetool/react-spline';
 import { Download } from "lucide-react";
 import logoWhite from "../assets/assets/WCD(E)_LogoWeiß.svg";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+// Register GSAP plugins
+gsap.registerPlugin(ScrollTrigger);
 
 interface ScrollRevealTextProps {
   text: string;
-  scrollProgress: any;
-  startProgress?: number;
-  endProgress?: number;
+  containerRef: React.RefObject<HTMLDivElement>;
 }
 
 const DELAY_FACTOR = 0.3;
-const LOGO_CHAR_COUNT = 5;
-const LETTER_OPACITY_RANGE = [0.2, 1];
-const LETTER_WIDTH_FACTOR = 0.8;
+const LETTER_OPACITY_START = 0.2;
+const LETTER_OPACITY_END = 1;
 
-function ScrollRevealText({ text, scrollProgress, startProgress = 0, endProgress = 1 }: ScrollRevealTextProps) {
+function ScrollRevealText({ text, containerRef }: ScrollRevealTextProps) {
+  const textRef = useRef<HTMLSpanElement>(null);
   const words = text.split(" ");
-  let letterIndex = 0;
-  const delayedStartProgress = startProgress + DELAY_FACTOR * (endProgress - startProgress);
+  
+  useLayoutEffect(() => {
+    if (!textRef.current || !containerRef.current) return;
+    
+    const letters = textRef.current.querySelectorAll('.scroll-reveal-letter');
+    const totalLetters = letters.length;
+    
+    // Set initial opacity
+    gsap.set(letters, { opacity: LETTER_OPACITY_START });
+    
+    // Create a single timeline with ScrollTrigger for sequential letter reveal
+    const ctx = gsap.context(() => {
+      // Create a timeline for the entire text reveal
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: containerRef.current,
+          start: "top bottom",      // Start when container enters viewport
+          end: "center top",        // End when center of container reaches top
+          scrub: 0.5,               // Smooth scrubbing
+        }
+      });
+      
+      // Add delay at the beginning (30% of scroll before text starts revealing)
+      tl.to({}, { duration: DELAY_FACTOR });
+      
+      // Animate each letter sequentially
+      letters.forEach((letter, index) => {
+        // Each letter takes a small fraction of the remaining timeline
+        const letterDuration = (1 - DELAY_FACTOR) / totalLetters;
+        
+        tl.to(letter, {
+          opacity: LETTER_OPACITY_END,
+          duration: letterDuration * 1.5, // Slightly overlap for smoother effect
+          ease: "none",
+        }, DELAY_FACTOR + (index * letterDuration)); // Stagger start times
+      });
+    }, textRef);
+    
+    return () => {
+      ctx.revert();
+      ScrollTrigger.getAll().forEach(st => st.kill());
+    };
+  }, [containerRef, text]);
+  
+  // Count total characters for proper indexing
+  let charIndex = 0;
   
   return (
-    <span className="scroll-reveal-text">
+    <span className="scroll-reveal-text" ref={textRef}>
       {words.map((word, wordIndex) => {
         if (word === "WCD(E)") {
-          const logoStart = delayedStartProgress + (letterIndex / text.length) * (endProgress - delayedStartProgress);
-          const logoEnd = logoStart + (LOGO_CHAR_COUNT / text.length) * (endProgress - delayedStartProgress);
-          
-          const logoOpacity = useTransform(
-            scrollProgress,
-            [logoStart, logoEnd],
-            LETTER_OPACITY_RANGE
-          );
-          letterIndex += LOGO_CHAR_COUNT;
-          
-            return (
-              <motion.span
-                key={`logo-${wordIndex}`}
-                style={{ opacity: logoOpacity }}
-                className="scroll-reveal-letter logo-container"
-              >
+          const logoElement = (
+            <span 
+              key={`word-${wordIndex}`} 
+              className="scroll-reveal-word"
+              style={{ whiteSpace: 'nowrap', display: 'inline-block' }}
+            >
+              <span className="scroll-reveal-letter logo-container">
                 <img src={logoWhite} alt="WCD(E)" className="inline-logo" />
-              </motion.span>
-            );
-        } else {
-          const letters = word.split("");
-          const wordElements = letters.map((letter, letterIdx) => {
-            const letterStart = delayedStartProgress + (letterIndex / text.length) * (endProgress - delayedStartProgress);
-            const letterEnd = letterStart + (LETTER_WIDTH_FACTOR / text.length) * (endProgress - delayedStartProgress);
-            
-            const letterOpacity = useTransform(
-              scrollProgress,
-              [letterStart, letterEnd],
-              LETTER_OPACITY_RANGE
-            );
-            
-            letterIndex++;
-            
-            return (
-              <motion.span
-                key={`${wordIndex}-${letterIdx}`}
-                style={{ opacity: letterOpacity }}
-                className="scroll-reveal-letter"
-              >
-                {letter}
-              </motion.span>
-            );
-          });
+              </span>
+            </span>
+          );
+          charIndex += 5; // WCD(E) counts as 5 characters
           
+          // Add space after word (except last word)
           if (wordIndex < words.length - 1) {
-            const spaceStart = delayedStartProgress + (letterIndex / text.length) * (endProgress - delayedStartProgress);
-            const spaceEnd = spaceStart + (1 / text.length) * (endProgress - delayedStartProgress);
-            
-            const spaceOpacity = useTransform(
-              scrollProgress,
-              [spaceStart, spaceEnd],
-              LETTER_OPACITY_RANGE
-            );
-            letterIndex++;
-            
-            wordElements.push(
-              <motion.span
-                key={`space-${wordIndex}`}
-                style={{ opacity: spaceOpacity }}
-                className="scroll-reveal-letter"
-              >
-                {"\u00A0"}
-              </motion.span>
+            charIndex += 1;
+            return (
+              <span key={`word-wrapper-${wordIndex}`}>
+                {logoElement}
+                <span className="scroll-reveal-letter scroll-reveal-space">{"\u00A0"}</span>
+              </span>
             );
           }
+          return logoElement;
+        } else {
+          const letters = word.split("");
+          const wordElement = (
+            <span 
+              key={`word-${wordIndex}`} 
+              className="scroll-reveal-word"
+              style={{ whiteSpace: 'nowrap', display: 'inline-block' }}
+            >
+              {letters.map((letter, letterIdx) => {
+                charIndex++;
+                return (
+                  <span
+                    key={`${wordIndex}-${letterIdx}`}
+                    className="scroll-reveal-letter"
+                  >
+                    {letter}
+                  </span>
+                );
+              })}
+            </span>
+          );
           
-          return wordElements;
+          // Add space after word (except last word)
+          if (wordIndex < words.length - 1) {
+            charIndex += 1;
+            return (
+              <span key={`word-wrapper-${wordIndex}`}>
+                {wordElement}
+                <span className="scroll-reveal-letter scroll-reveal-space">{"\u00A0"}</span>
+              </span>
+            );
+          }
+          return wordElement;
         }
       })}
     </span>
@@ -102,15 +139,6 @@ function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
   const [currentPerson, setCurrentPerson] = useState<'elias' | 'justin'>('elias');
-  
-  // Scroll-Progress spezifisch für den Text-Container
-  const { scrollYProgress } = useScroll({
-    target: textContainerRef,
-    offset: ["start end", "center start"] // Mittelweg - Effekt endet wenn Mitte des Containers oben im Viewport ist
-  });
-  
-  // Logo erscheint früh und schnell
-  const logoOpacity = useTransform(scrollYProgress, [0, 0.2], [0.2, 1]);
 
 
   const togglePerson = () => {
@@ -138,10 +166,8 @@ function AboutSection() {
       <div className="scroll-text-container" ref={textContainerRef}>
         <div className="scroll-text-content">
           <ScrollRevealText 
-            text="WCD(E) is a collective of passionate digital innovators and multidisciplinary designers dedicated to building bold brands and distinct online identities. We craft meaningful digital experiences that merge creativity with strategy, helping forward-thinking companies connect deeply with their audiences."
-            scrollProgress={scrollYProgress}
-            startProgress={0}
-            endProgress={1}
+            text="WCD(E) is a creative-tech duo of digital innovators. We are merging high-end Graphic Design with Informatics and deliver everything from trend-setting branding to AI Automations. We believe in a future where aesthetics and technology work in perfect harmony. If you're looking for a fresh, innovative partner to scale your vision, you've found us."
+            containerRef={textContainerRef}
           />
         </div>
       </div>
@@ -211,16 +237,14 @@ function AboutSection() {
                   </span>
                 ))}
               </div>
-              {currentPerson === 'elias' && (
-                <a 
-                  href="/assets/CV_Elias_Musso.pdf" 
-                  download="CV_Elias_Musso.pdf"
-                  className="cv-download-btn"
-                >
-                  <Download className="cv-download-icon" />
-                  DOWNLOAD CV
-                </a>
-              )}
+              <a 
+                href={currentPerson === 'elias' ? "/assets/CV_Elias_Musso.pdf" : "/assets/CV_Justin_Jambrec.pdf"} 
+                download={currentPerson === 'elias' ? "CV_Elias_Musso.pdf" : "CV_Justin_Jambrec.pdf"}
+                className="cv-download-btn"
+              >
+                <Download className="cv-download-icon" />
+                DOWNLOAD CV
+              </a>
             </div>
           </motion.div>
         </div>

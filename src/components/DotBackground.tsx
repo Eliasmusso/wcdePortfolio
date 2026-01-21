@@ -29,8 +29,13 @@ const TRAIL_LIFETIME = 600;
 const MOUSE_INFLUENCE_RADIUS = 120;
 const TRAIL_INFLUENCE_RADIUS = 100;
 const TRAIL_MAX_POINTS = 20;
-const HERO_RADIUS = 260;
 const DOT_MARGIN = 50;
+
+// Dynamic hero radius based on viewport
+const getHeroRadius = () => {
+  if (typeof window === 'undefined') return 260;
+  return window.innerWidth <= 768 ? 140 : 260;
+};
 const OPACITY_BASE = 0.7;
 const SCALE_MULTIPLIER = 2.0;
 const LERP_SPEED = 0.15;
@@ -61,6 +66,9 @@ export function DotBackground({
     const containerWidth = canvas.width;
     const containerHeight = canvas.height;
     
+    // Get dynamic hero radius based on viewport
+    const heroRadius = getHeroRadius();
+    
     let centerX = containerWidth / 2;
     let centerY = containerHeight / 2;
     
@@ -82,10 +90,10 @@ export function DotBackground({
         const dy = y - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
-        if (distance < HERO_RADIUS) continue;
+        if (distance < heroRadius) continue;
         
-        const distanceFromCutout = distance - HERO_RADIUS;
-        const normalizedDistance = Math.min(distanceFromCutout / (maxDistance - HERO_RADIUS), 1);
+        const distanceFromCutout = distance - heroRadius;
+        const normalizedDistance = Math.min(distanceFromCutout / (maxDistance - heroRadius), 1);
         const calculatedSize = sizeBase + sizeMultiplier * normalizedDistance;
         
         dotsArray.push({
@@ -215,6 +223,32 @@ export function DotBackground({
     mousePosRef.current = null;
   }, []);
 
+  // Handle touch move
+  const handleTouchMove = useCallback((e: TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const newPos = {
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
+    };
+    
+    mousePosRef.current = newPos;
+
+    // Add to trail
+    const now = Date.now();
+    const trail = trailRef.current;
+    if (trail.length === 0 || now - trail[trail.length - 1].timestamp > 20) {
+      trailRef.current = [...trail.slice(-TRAIL_MAX_POINTS + 1), { ...newPos, timestamp: now }];
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    mousePosRef.current = null;
+  }, []);
+
   // Setup canvas and event listeners
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -244,16 +278,24 @@ export function DotBackground({
     // Add event listeners
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseleave', handleMouseLeave);
+    // Touch support
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
+    canvas.addEventListener('touchend', handleTouchEnd);
+    canvas.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
+      // Touch cleanup
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [initDots, render, handleMouseMove, handleMouseLeave]);
+  }, [initDots, render, handleMouseMove, handleMouseLeave, handleTouchMove, handleTouchEnd]);
 
   return (
     <canvas

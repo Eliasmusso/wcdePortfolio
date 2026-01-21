@@ -292,12 +292,14 @@ function PortfolioSection() {
       className="section section-portfolio"
       style={{ minHeight: "300vh" }}
     >
-      <div className="container" style={{ width: "min(1120px, 100% - 3rem)", marginInline: "auto" }}>
-        <header className="section-header" style={{ textAlign: "left", maxWidth: "none", width: "100%" }}>
-          <h2 className="hero-heading" style={{ fontSize: "clamp(3.1rem, 5.6vw, 4.4rem)" }}>
-            PORTFOLIO
-          </h2>
-        </header>
+      <div className={`portfolio-header-wrapper ${isVisible ? 'sticky' : ''}`}>
+        <div className="container" style={{ width: "min(1120px, 100% - 3rem)", marginInline: "auto" }}>
+          <header className="section-header" style={{ textAlign: "left", maxWidth: "none", width: "100%" }}>
+            <h2 className="hero-heading" style={{ fontSize: "clamp(3.1rem, 5.6vw, 4.4rem)" }}>
+              PORTFOLIO
+            </h2>
+          </header>
+        </div>
       </div>
 
       <div
