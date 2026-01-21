@@ -1,4 +1,4 @@
-import { useRef, useState, Suspense, useEffect, useLayoutEffect } from "react";
+import { useRef, useState, Suspense, useEffect } from "react";
 import { motion } from "framer-motion";
 import Spline from '@splinetool/react-spline';
 import { Download } from "lucide-react";
@@ -22,46 +22,80 @@ function ScrollRevealText({ text, containerRef }: ScrollRevealTextProps) {
   const textRef = useRef<HTMLSpanElement>(null);
   const words = text.split(" ");
   
-  useLayoutEffect(() => {
+  useEffect(() => {
+    // Use useEffect instead of useLayoutEffect for production compatibility
     if (!textRef.current || !containerRef.current) return;
     
-    const letters = textRef.current.querySelectorAll('.scroll-reveal-letter');
-    const totalLetters = letters.length;
-    
-    // Set initial opacity
-    gsap.set(letters, { opacity: LETTER_OPACITY_START });
-    
-    // Create a single timeline with ScrollTrigger for sequential letter reveal
-    const ctx = gsap.context(() => {
-      // Create a timeline for the entire text reveal
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: containerRef.current,
-          start: "top bottom",      // Start when container enters viewport
-          end: "center top",        // End when center of container reaches top
-          scrub: 0.5,               // Smooth scrubbing
-        }
-      });
+    // Small delay to ensure DOM is fully rendered in production builds
+    const initAnimation = () => {
+      const letters = textRef.current?.querySelectorAll('.scroll-reveal-letter');
+      if (!letters || letters.length === 0) {
+        // Retry if elements not ready yet
+        requestAnimationFrame(initAnimation);
+        return;
+      }
       
-      // Add delay at the beginning (30% of scroll before text starts revealing)
-      tl.to({}, { duration: DELAY_FACTOR });
+      const totalLetters = letters.length;
       
-      // Animate each letter sequentially
-      letters.forEach((letter, index) => {
-        // Each letter takes a small fraction of the remaining timeline
-        const letterDuration = (1 - DELAY_FACTOR) / totalLetters;
+      // Set initial opacity
+      gsap.set(letters, { opacity: LETTER_OPACITY_START });
+      
+      // Create a single timeline with ScrollTrigger for sequential letter reveal
+      const ctx = gsap.context(() => {
+        // Create a timeline for the entire text reveal
+        const tl = gsap.timeline({
+          scrollTrigger: {
+            trigger: containerRef.current,
+            start: "top bottom",      // Start when container enters viewport
+            end: "center top",        // End when center of container reaches top
+            scrub: 0.5,               // Smooth scrubbing
+            invalidateOnRefresh: true, // Recalculate on refresh
+            refreshPriority: -1,      // Ensure proper refresh order
+          }
+        });
         
-        tl.to(letter, {
-          opacity: LETTER_OPACITY_END,
-          duration: letterDuration * 1.5, // Slightly overlap for smoother effect
-          ease: "none",
-        }, DELAY_FACTOR + (index * letterDuration)); // Stagger start times
-      });
-    }, textRef);
+        // Add delay at the beginning (30% of scroll before text starts revealing)
+        tl.to({}, { duration: DELAY_FACTOR });
+        
+        // Animate each letter sequentially
+        letters.forEach((letter, index) => {
+          // Each letter takes a small fraction of the remaining timeline
+          const letterDuration = (1 - DELAY_FACTOR) / totalLetters;
+          
+          tl.to(letter, {
+            opacity: LETTER_OPACITY_END,
+            duration: letterDuration * 1.5, // Slightly overlap for smoother effect
+            ease: "none",
+          }, DELAY_FACTOR + (index * letterDuration)); // Stagger start times
+        });
+        
+        // Force ScrollTrigger refresh after setup (critical for production)
+        requestAnimationFrame(() => {
+          ScrollTrigger.refresh();
+        });
+      }, textRef);
+      
+      // Store context for cleanup
+      (textRef.current as any).__gsapContext = ctx;
+    };
+    
+    // Start initialization
+    requestAnimationFrame(initAnimation);
     
     return () => {
-      ctx.revert();
-      ScrollTrigger.getAll().forEach(st => st.kill());
+      // Cleanup
+      const ctx = (textRef.current as any)?.__gsapContext;
+      if (ctx) {
+        ctx.revert();
+      }
+      
+      // Kill all ScrollTriggers associated with this container
+      ScrollTrigger.getAll().forEach(st => {
+        if (st.trigger === containerRef.current || 
+            (st.vars && st.vars.trigger === containerRef.current)) {
+          st.kill();
+        }
+      });
     };
   }, [containerRef, text]);
   
