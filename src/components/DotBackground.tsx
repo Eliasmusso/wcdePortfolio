@@ -65,9 +65,10 @@ export function DotBackground({
 
     const containerWidth = canvas.width;
     const containerHeight = canvas.height;
+    const dpr = window.devicePixelRatio || 1;
     
-    // Get dynamic hero radius based on viewport
-    const heroRadius = getHeroRadius();
+    // Get dynamic hero radius based on viewport (in device pixels)
+    const heroRadius = getHeroRadius() * dpr;
     
     let centerX = containerWidth / 2;
     let centerY = containerHeight / 2;
@@ -75,8 +76,10 @@ export function DotBackground({
     const h1Element = document.querySelector('.hero-heading');
     if (h1Element) {
       const rect = h1Element.getBoundingClientRect();
-      centerX = rect.left + rect.width / 2;
-      centerY = rect.top + rect.height / 2;
+      const canvasRect = canvas.getBoundingClientRect();
+      // Convert CSS pixels to device pixels
+      centerX = (rect.left + rect.width / 2 - canvasRect.left) * dpr;
+      centerY = (rect.top + rect.height / 2 - canvasRect.top) * dpr;
     }
     
     const dotsArray: Dot[] = [];
@@ -204,9 +207,12 @@ export function DotBackground({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Calculate position relative to canvas in device pixels
     const newPos = {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: (e.clientX - rect.left) * dpr,
+      y: (e.clientY - rect.top) * dpr,
     };
     
     mousePosRef.current = newPos;
@@ -223,6 +229,29 @@ export function DotBackground({
     mousePosRef.current = null;
   }, []);
 
+  // Handle touch start
+  const handleTouchStart = useCallback((e: TouchEvent) => {
+    const canvas = canvasRef.current;
+    if (!canvas || e.touches.length === 0) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0];
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Calculate position relative to canvas in device pixels
+    // canvas.width/height are in device pixels, rect.width/height are in CSS pixels
+    const newPos = {
+      x: (touch.clientX - rect.left) * dpr,
+      y: (touch.clientY - rect.top) * dpr,
+    };
+    
+    mousePosRef.current = newPos;
+
+    // Add to trail
+    const now = Date.now();
+    trailRef.current = [{ ...newPos, timestamp: now }];
+  }, []);
+
   // Handle touch move
   const handleTouchMove = useCallback((e: TouchEvent) => {
     const canvas = canvasRef.current;
@@ -230,9 +259,13 @@ export function DotBackground({
 
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Calculate position relative to canvas in device pixels
+    // canvas.width/height are in device pixels, rect.width/height are in CSS pixels
     const newPos = {
-      x: touch.clientX - rect.left,
-      y: touch.clientY - rect.top,
+      x: (touch.clientX - rect.left) * dpr,
+      y: (touch.clientY - rect.top) * dpr,
     };
     
     mousePosRef.current = newPos;
@@ -247,6 +280,7 @@ export function DotBackground({
 
   const handleTouchEnd = useCallback(() => {
     mousePosRef.current = null;
+    trailRef.current = [];
   }, []);
 
   // Setup canvas and event listeners
@@ -279,6 +313,7 @@ export function DotBackground({
     canvas.addEventListener('mousemove', handleMouseMove);
     canvas.addEventListener('mouseleave', handleMouseLeave);
     // Touch support
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
     canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
     canvas.addEventListener('touchend', handleTouchEnd);
     canvas.addEventListener('touchcancel', handleTouchEnd);
@@ -288,6 +323,7 @@ export function DotBackground({
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('mouseleave', handleMouseLeave);
       // Touch cleanup
+      canvas.removeEventListener('touchstart', handleTouchStart);
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
       canvas.removeEventListener('touchcancel', handleTouchEnd);
@@ -295,7 +331,7 @@ export function DotBackground({
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [initDots, render, handleMouseMove, handleMouseLeave, handleTouchMove, handleTouchEnd]);
+  }, [initDots, render, handleMouseMove, handleMouseLeave, handleTouchStart, handleTouchMove, handleTouchEnd]);
 
   return (
     <canvas

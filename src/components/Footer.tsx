@@ -19,7 +19,7 @@ function Footer() {
             <h4 className="footer-column-title">SOCIALS</h4>
             <div className="footer-column-links">
               <a 
-                href="https://linkedin.com" 
+                href="https://www.linkedin.com/company/warcord-enterprise/?viewAsMember=true" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="footer-link"
@@ -27,7 +27,7 @@ function Footer() {
                 Linkedin
               </a>
               <a 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/warcordenterprise?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="footer-link"

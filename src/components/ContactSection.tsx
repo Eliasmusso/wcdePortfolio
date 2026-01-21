@@ -1,4 +1,34 @@
 function ContactSection() {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    
+    const name = formData.get('name') as string;
+    const email = formData.get('email') as string;
+    const service = formData.get('service') as string;
+    const budget = formData.get('budget') as string;
+    const message = formData.get('message') as string;
+    
+    // Create email subject
+    const subject = encodeURIComponent(`Kontaktanfrage: ${service}`);
+    
+    // Create email body
+    const body = encodeURIComponent(
+      `Name: ${name}\n` +
+      `E-Mail: ${email}\n` +
+      `Service: ${service}\n` +
+      (budget ? `Budget: ${budget}€\n` : '') +
+      `\nNachricht:\n${message}`
+    );
+    
+    // Create mailto link
+    const mailtoLink = `mailto:info@wcde.agency?subject=${subject}&body=${body}`;
+    
+    // Open email client
+    window.location.href = mailtoLink;
+  };
+
   return (
     <section id="contact" className="section section-contact">
       <div className="container">
@@ -9,7 +39,7 @@ function ContactSection() {
         </header>
 
         <div className="contact-layout" style={{ marginTop: "2.6rem" }}>
-          <form className="contact-form glass">
+          <form className="contact-form glass" onSubmit={handleSubmit}>
             <div className="form-field">
               <label htmlFor="name">Name *</label>
               <input id="name" name="name" type="text" required />
@@ -55,7 +85,7 @@ function ContactSection() {
             </p>
             <div className="social-links">
               <a 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/warcordenterprise?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="social-link"
@@ -64,7 +94,7 @@ function ContactSection() {
                 Instagram
               </a>
               <a 
-                href="https://linkedin.com" 
+                href="https://www.linkedin.com/company/warcord-enterprise/?viewAsMember=true" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="social-link"
@@ -73,7 +103,7 @@ function ContactSection() {
                 LinkedIn
               </a>
               <a 
-                href="mailto:contact@example.com" 
+                href="mailto:info@wcde.agency" 
                 className="social-link"
                 aria-label="Email"
               >
