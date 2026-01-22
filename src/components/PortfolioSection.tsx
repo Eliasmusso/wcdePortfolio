@@ -175,11 +175,17 @@ function PortfolioSection() {
   // Scroll-based animation
   useEffect(() => {
     let ticking = false;
+    
+    // Helper to check if mobile
+    const isMobile = () => window.innerWidth <= 768;
+    
     const updateCarouselPosition = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           if (!sectionRef.current || totalCarouselWidth === 0 || viewportWidth === 0) {
-            carouselX.set(viewportWidth);
+            // On mobile, start at 700px; on desktop, off-screen
+            const initialX = isMobile() ? 700 : viewportWidth;
+            carouselX.set(initialX);
             carouselOpacity.set(0);
             ticking = false;
             return;
@@ -219,8 +225,9 @@ function PortfolioSection() {
           const sectionFullyVisible = sectionTop <= 0 && sectionHeight >= viewportHeight;
 
           if (!sectionFullyVisible) {
-            // Section not fully visible yet - carousel off-screen to the right and invisible
-            carouselX.set(vw * 2); // Move completely off-screen
+            // Section not fully visible yet - on mobile start at 700px, on desktop off-screen
+            const initialX = isMobile() ? 700 : vw * 2;
+            carouselX.set(initialX);
             carouselOpacity.set(0);
             setIsVisible(false);
             ticking = false;
@@ -238,23 +245,39 @@ function PortfolioSection() {
           const maxScrollDistance = sectionHeight - viewportHeight; // Total scrollable distance
 
           if (maxScrollDistance <= 0) {
-            carouselX.set(vw);
+            // On mobile, start at 700px; on desktop, off-screen
+            const initialX = isMobile() ? 700 : vw;
+            carouselX.set(initialX);
             ticking = false;
             return;
           }
 
-          // Calculate target position (last card 20px from right edge)
-          const targetX = -(totalCarouselWidth - vw + 20);
+          // Calculate target position
+          // On mobile: start from right (vw), scroll left to show all cards
+          // On desktop: last card 20px from right edge
+          let targetX;
+          if (isMobile()) {
+            // On mobile: start from right (vw), end when first card is centered/visible
+            // Allow scrolling to show more cards but keep first card accessible
+            const maxScrollLeft = totalCarouselWidth - vw;
+            // End position: scroll left enough to show other cards, but keep first card visible
+            targetX = -(maxScrollLeft * 0.6);
+          } else {
+            // Desktop: last card 20px from right edge
+            targetX = -(totalCarouselWidth - vw + 20);
+          }
 
           // Calculate progress (0 to 1)
           const progress = Math.min(Math.max(scrollDistance / maxScrollDistance, 0), 1);
 
           // If animation is complete (progress = 1), keep carousel at final position
-          // Otherwise, interpolate from vw (off-screen right) to targetX
+          // Otherwise, interpolate from start position to targetX
           if (progress >= 1) {
             carouselX.set(targetX);
           } else {
-            const currentX = vw + progress * (targetX - vw);
+            // On mobile, start at 700px; on desktop, from off-screen (vw)
+            const startX = isMobile() ? 700 : vw;
+            const currentX = startX + progress * (targetX - startX);
             carouselX.set(currentX);
           }
           ticking = false;
@@ -295,10 +318,10 @@ function PortfolioSection() {
       <div className={`portfolio-header-wrapper ${isVisible ? 'sticky' : ''}`}>
         <div className="container" style={{ width: "min(1120px, 100% - 3rem)", marginInline: "auto" }}>
           <header className="section-header" style={{ textAlign: "left", maxWidth: "none", width: "100%" }}>
-            <h2 className="hero-heading" style={{ fontSize: "clamp(3.1rem, 5.6vw, 4.4rem)" }}>
-              PORTFOLIO
-            </h2>
-          </header>
+          <h2 className="hero-heading" style={{ fontSize: "clamp(3.1rem, 5.6vw, 4.4rem)" }}>
+            PORTFOLIO
+          </h2>
+        </header>
         </div>
       </div>
 

@@ -67,16 +67,37 @@ export function DotBackground({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const containerWidth = canvas.width;
-    const containerHeight = canvas.height;
-    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
     
-    // Get dynamic hero radius based on viewport (in device pixels)
-    const heroRadius = getHeroRadius() * dpr;
+    // Use CSS pixel dimensions (since context is scaled with dpr)
+    const containerWidth = rect.width;
+    const containerHeight = rect.height;
     
-    // Always center the circle in the middle of the canvas
-    const centerX = containerWidth / 2;
-    const centerY = containerHeight / 2;
+    // Get dynamic hero radius based on viewport (in CSS pixels)
+    const heroRadius = getHeroRadius();
+    
+    // Default to center of canvas
+    let centerX = containerWidth / 2;
+    let centerY = containerHeight / 2;
+    
+    // Find .home-hero element and center circle behind it
+    const homeHeroElement = document.querySelector('.home-hero');
+    if (homeHeroElement) {
+      const heroRect = homeHeroElement.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      
+      // Calculate center position of .home-hero relative to canvas (in CSS pixels)
+      const relativeX = (heroRect.left + heroRect.width / 2) - canvasRect.left;
+      const relativeY = (heroRect.top + heroRect.height / 2) - canvasRect.top;
+      
+      // Use calculated position if valid
+      if (!isNaN(relativeX) && !isNaN(relativeY) && 
+          relativeX >= 0 && relativeY >= 0 && 
+          relativeX <= containerWidth && relativeY <= containerHeight) {
+        centerX = relativeX;
+        centerY = relativeY;
+      }
+    }
     
     const dotsArray: Dot[] = [];
     const maxDistance = Math.max(containerWidth, containerHeight) * 0.8;
@@ -204,12 +225,11 @@ export function DotBackground({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     
-    // Calculate position relative to canvas in device pixels
+    // Calculate position relative to canvas in CSS pixels (context is scaled)
     const newPos = {
-      x: (e.clientX - rect.left) * dpr,
-      y: (e.clientY - rect.top) * dpr,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
     };
     
     mousePosRef.current = newPos;
@@ -233,13 +253,11 @@ export function DotBackground({
 
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
-    const dpr = window.devicePixelRatio || 1;
     
-    // Calculate position relative to canvas in device pixels
-    // canvas.width/height are in device pixels, rect.width/height are in CSS pixels
+    // Calculate position relative to canvas in CSS pixels (context is scaled)
     const newPos = {
-      x: (touch.clientX - rect.left) * dpr,
-      y: (touch.clientY - rect.top) * dpr,
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
     };
     
     mousePosRef.current = newPos;
@@ -256,13 +274,11 @@ export function DotBackground({
     
     const rect = canvas.getBoundingClientRect();
     const touch = e.touches[0];
-    const dpr = window.devicePixelRatio || 1;
     
-    // Calculate position relative to canvas in device pixels
-    // canvas.width/height are in device pixels, rect.width/height are in CSS pixels
+    // Calculate position relative to canvas in CSS pixels (context is scaled)
     const newPos = {
-      x: (touch.clientX - rect.left) * dpr,
-      y: (touch.clientY - rect.top) * dpr,
+      x: touch.clientX - rect.left,
+      y: touch.clientY - rect.top,
     };
     
     mousePosRef.current = newPos;

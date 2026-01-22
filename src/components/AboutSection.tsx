@@ -25,7 +25,7 @@ function ScrollRevealText({ text, containerRef }: ScrollRevealTextProps) {
   useEffect(() => {
     // Use useEffect instead of useLayoutEffect for production compatibility
     if (!textRef.current || !containerRef.current) return;
-    
+  
     // Small delay to ensure DOM is fully rendered in production builds
     const initAnimation = () => {
       const letters = textRef.current?.querySelectorAll('.scroll-reveal-letter');
@@ -140,17 +140,17 @@ function ScrollRevealText({ text, containerRef }: ScrollRevealTextProps) {
             >
               {letters.map((letter, letterIdx) => {
                 charIndex++;
-                return (
+            return (
                   <span
-                    key={`${wordIndex}-${letterIdx}`}
-                    className="scroll-reveal-letter"
-                  >
-                    {letter}
+                key={`${wordIndex}-${letterIdx}`}
+                className="scroll-reveal-letter"
+              >
+                {letter}
                   </span>
                 );
               })}
             </span>
-          );
+            );
           
           // Add space after word (except last word)
           if (wordIndex < words.length - 1) {
@@ -271,14 +271,14 @@ function AboutSection() {
                   </span>
                 ))}
               </div>
-              <a 
+                <a 
                 href={currentPerson === 'elias' ? "/assets/CV_Elias_Musso.pdf" : "/assets/CV_Justin_Jambrec.pdf"} 
                 download={currentPerson === 'elias' ? "CV_Elias_Musso.pdf" : "CV_Justin_Jambrec.pdf"}
-                className="cv-download-btn"
-              >
-                <Download className="cv-download-icon" />
-                DOWNLOAD CV
-              </a>
+                  className="cv-download-btn"
+                >
+                  <Download className="cv-download-icon" />
+                  DOWNLOAD CV
+                </a>
             </div>
           </motion.div>
         </div>
