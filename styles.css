@@ -167,7 +167,7 @@ body {
     Arial, sans-serif;
   width: 100%;
   max-width: 100vw;
-  background-color: var(--bg);
+  background-color: #000000;
   color: var(--text);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -815,13 +815,18 @@ html.modal-open .site-header {
   background: transparent;
   pointer-events: none;
   opacity: 0;
+  visibility: hidden;
+  height: 0;
   transform: translateY(50px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease, height 0s 0.3s;
 }
 
 .portfolio-header-wrapper.sticky {
   opacity: 1;
+  visibility: visible;
+  height: auto;
   transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease, height 0s 0s;
 }
 
 .portfolio-header-wrapper .container,
@@ -2083,6 +2088,24 @@ h2.portfolio-heading {
   opacity: 0.7;
 }
 
+button.footer-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 400;
+  transition: opacity 0.2s ease;
+}
+
+button.footer-link:hover {
+  opacity: 0.7;
+}
+
 .footer-logo-container {
   width: 100%;
   display: flex;
@@ -2906,6 +2929,10 @@ h2.portfolio-heading {
     font-size: 0.8rem;
   }
 
+  button.footer-link {
+    font-size: 0.8rem;
+  }
+
   .footer-legal {
     font-size: 0.8rem;
   }
@@ -3274,6 +3301,15 @@ h2.portfolio-heading {
 
   .footer-link {
     font-size: 0.75rem;
+  }
+
+  button.footer-link {
+    font-size: 0.75rem;
+    text-align: center;
+  }
+
+  .footer-column-links {
+    align-items: center;
   }
 
   .footer-copyright {

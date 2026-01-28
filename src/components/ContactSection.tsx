@@ -56,7 +56,7 @@ function ContactSection() {
                 <option value="brand-identity">Brand Identity</option>
                 <option value="webshop">Webshop</option>
                 <option value="3d-design">3D Design</option>
-                <option value="ki-automation">KI Automation</option>
+                <option value="ki-automation">AI Automation</option>
               </select>
             </div>
             <div className="form-field">

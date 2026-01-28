@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 
-const categories = ["Design", "Development", "KI Automation"];
+const categories = ["Design", "Development", "AI Automation"];
 
 const SCROLL_THRESHOLDS = {
   DESIGN: 0.45,
@@ -29,7 +29,7 @@ const highlightedTagsByCategory: Record<number, string[]> = {
     "User Experience Optimization",
     "Web Apps",
   ],
-  2: [ // KI Automation
+  2: [ // AI Automation
     "Invoice Automation",
     "Email Automation",
   ],
@@ -88,7 +88,7 @@ const tagsByCategory: Record<number, string[]> = {
     "User Experience Optimization",
     "Web Apps",
   ],
-  2: [ // KI Automation
+  2: [ // AI Automation
     "Invoice Automation",
     "Email Automation",
   ],

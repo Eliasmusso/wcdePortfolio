@@ -28,6 +28,12 @@ const ASSETS = {
 const TRIAS_VIDEO_ID = "a4P-3FovI9c";
 const TRIAS_IMG = `https://img.youtube.com/vi/${TRIAS_VIDEO_ID}/maxresdefault.jpg`;
 
+// Fallback images used when a project has no specific images defined.
+// These reuse existing assets so behavior/appearance stays consistent
+// and only affect the rare case where a project's `images` array is missing.
+const placeholderImage1 = ASSETS.sportschule.main;
+const placeholderImage2 = ASSETS.helfair.main;
+
 interface Project {
   id: string;
   title: string;
@@ -253,15 +259,12 @@ function PortfolioSection() {
           }
 
           // Calculate target position
-          // On mobile: start from right (vw), scroll left to show all cards
+          // On mobile: scroll until last card (keimba) reaches -600px
           // On desktop: last card 20px from right edge
           let targetX;
           if (isMobile()) {
-            // On mobile: start from right (vw), end when first card is centered/visible
-            // Allow scrolling to show more cards but keep first card accessible
-            const maxScrollLeft = totalCarouselWidth - vw;
-            // End position: scroll left enough to show other cards, but keep first card visible
-            targetX = -(maxScrollLeft * 0.6);
+            // On mobile: end position is -600px so keimba can scroll further
+            targetX = -600;
           } else {
             // Desktop: last card 20px from right edge
             targetX = -(totalCarouselWidth - vw + 20);
@@ -349,7 +352,8 @@ function PortfolioSection() {
             display: "flex",
             gap: "2rem",
             willChange: "transform, opacity",
-            pointerEvents: "auto",
+            // Only allow interaction when carousel is actually visible
+            pointerEvents: isVisible ? "auto" : "none",
             x: smoothX,
             opacity: smoothOpacity,
           }}
