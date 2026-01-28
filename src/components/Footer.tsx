@@ -11,16 +11,23 @@ function Footer() {
 Angaben gemäß § 5 TMG
 
 Warcord Enterprise
-[Adresse]
-[PLZ Ort]
+Am Seewald 25
+88046 Friedrichshafen
 
 Kontakt:
 E-Mail: info@wcde.agency
 
+Gesellschaftsform:
+Gesellschaft bürgerlichen Rechts (GbR)
+
+Gesellschafter:
+Elias Musso
+Justin Jambrec
+
 Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV:
 Warcord Enterprise
-[Adresse]
-[PLZ Ort]`;
+Am Seewald 25
+88046 Friedrichshafen`;
 
   const datenschutzContent = `Datenschutzerklärung
 
