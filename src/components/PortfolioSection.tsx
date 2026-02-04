@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import ProjectDetailModal from "./ProjectDetailModal";
 
 const ASSETS = {
@@ -119,6 +120,7 @@ function PortfolioSection() {
   const [aboutSectionVisible, setAboutSectionVisible] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [carouselProgress, setCarouselProgress] = useState(0);
 
   // Viewport width
   useEffect(() => {
@@ -189,19 +191,18 @@ function PortfolioSection() {
       if (!ticking) {
         window.requestAnimationFrame(() => {
           if (!sectionRef.current || totalCarouselWidth === 0 || viewportWidth === 0) {
-            // On mobile, start at 700px; on desktop, off-screen
             const initialX = isMobile() ? 700 : viewportWidth;
             carouselX.set(initialX);
             carouselOpacity.set(0);
+            setCarouselProgress(0);
             ticking = false;
             return;
           }
 
-          // If About section is visible, hide carousel but keep final position
           if (aboutSectionVisible) {
             carouselOpacity.set(0);
             setIsVisible(false);
-            // Keep final position instead of moving off-screen to prevent jump
+            setCarouselProgress(0);
             const targetX = -(totalCarouselWidth - viewportWidth + 20);
             carouselX.set(targetX);
             ticking = false;
@@ -215,70 +216,55 @@ function PortfolioSection() {
           const viewportHeight = window.innerHeight;
           const vw = window.innerWidth;
 
-          // Hide carousel if section is completely scrolled past (below viewport)
-          // But keep final position instead of moving off-screen
           if (sectionBottom < 0) {
             carouselOpacity.set(0);
             setIsVisible(false);
-            // Keep final position instead of moving off-screen to prevent jump
+            setCarouselProgress(0);
             const targetX = -(totalCarouselWidth - viewportWidth + 20);
             carouselX.set(targetX);
             ticking = false;
             return;
           }
 
-          // Check if section is fully in viewport (top <= 0 and height >= 100vh)
           const sectionFullyVisible = sectionTop <= 0 && sectionHeight >= viewportHeight;
 
           if (!sectionFullyVisible) {
-            // Section not fully visible yet - on mobile start at 700px, on desktop off-screen
             const initialX = isMobile() ? 700 : vw * 2;
             carouselX.set(initialX);
             carouselOpacity.set(0);
             setIsVisible(false);
+            setCarouselProgress(0);
             ticking = false;
             return;
           }
 
-          // Animation has started - make carousel visible
           setIsVisible(true);
           carouselOpacity.set(1);
 
-          // Calculate scroll progress within the section
-          // Start: section top at viewport top (sectionTop = 0)
-          // End: when last card is 20px from right edge
-          const scrollDistance = -sectionTop; // Distance scrolled past section start
-          const maxScrollDistance = sectionHeight - viewportHeight; // Total scrollable distance
+          const scrollDistance = -sectionTop;
+          const maxScrollDistance = sectionHeight - viewportHeight;
 
           if (maxScrollDistance <= 0) {
-            // On mobile, start at 700px; on desktop, off-screen
             const initialX = isMobile() ? 700 : vw;
             carouselX.set(initialX);
+            setCarouselProgress(0);
             ticking = false;
             return;
           }
 
-          // Calculate target position
-          // On mobile: scroll until last card (keimba) reaches -600px
-          // On desktop: last card 20px from right edge
           let targetX;
           if (isMobile()) {
-            // On mobile: end position is -600px so keimba can scroll further
             targetX = -600;
           } else {
-            // Desktop: last card 20px from right edge
             targetX = -(totalCarouselWidth - vw + 20);
           }
 
-          // Calculate progress (0 to 1)
           const progress = Math.min(Math.max(scrollDistance / maxScrollDistance, 0), 1);
+          setCarouselProgress(progress);
 
-          // If animation is complete (progress = 1), keep carousel at final position
-          // Otherwise, interpolate from start position to targetX
           if (progress >= 1) {
             carouselX.set(targetX);
           } else {
-            // On mobile, start at 700px; on desktop, from off-screen (vw)
             const startX = isMobile() ? 700 : vw;
             const currentX = startX + progress * (targetX - startX);
             carouselX.set(currentX);
@@ -297,6 +283,15 @@ function PortfolioSection() {
       window.removeEventListener("resize", updateCarouselPosition);
     };
   }, [totalCarouselWidth, viewportWidth, carouselX, aboutSectionVisible, carouselOpacity]);
+
+  // Ease-in (0..0.2) and ease-out (0.8..1) for chevron visibility during carousel
+  const chevronOpacity = (() => {
+    if (carouselProgress <= 0) return 0;
+    if (carouselProgress <= 0.2) return carouselProgress / 0.2;
+    if (carouselProgress >= 1) return 0;
+    if (carouselProgress >= 0.8) return (1 - carouselProgress) / 0.2;
+    return 1;
+  })();
 
   // Smooth spring animations
   const smoothX = useSpring(carouselX, {
@@ -413,6 +408,16 @@ function PortfolioSection() {
             </div>
           ))}
         </motion.div>
+      </div>
+
+      {/* Fixed scroll chevron: ease in at carousel start, ease out at carousel end */}
+      <div
+        className="portfolio-chevron-scroll"
+        style={{ opacity: chevronOpacity }}
+        aria-hidden
+      >
+        <span className="portfolio-chevron-scroll-text">Scroll down</span>
+        <ChevronDown size={40} strokeWidth={2} className="portfolio-chevron-scroll-icon" />
       </div>
 
       {/* Project Detail Modal */}

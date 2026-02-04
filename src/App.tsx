@@ -5,6 +5,7 @@ import PortfolioSection from "./components/PortfolioSection";
 import AboutSection from "./components/AboutSection";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
+import CookieBanner from "./components/CookieBanner";
 import { TextRevealByWord } from "./components/TextRevealByWord";
 import { DotBackground } from "./components/DotBackground";
 import { LoadingScreen } from "./components/LoadingScreen";
@@ -47,10 +48,10 @@ function App() {
               </h1>
               <div className="home-ctas">
                 <a href="#portfolio" className="btn-cta hero-cta-primary">
-                  PROJEKTE ANSEHEN
+                  PROJECTS
                 </a>
                 <a href="#contact" className="btn-secondary hero-cta-secondary">
-                  ANFRAGE SENDEN
+                  CONTACT US
                 </a>
               </div>
             </div>
@@ -63,6 +64,7 @@ function App() {
         <ContactSection />
       </main>
       <Footer />
+      <CookieBanner />
     </>
   );
 }

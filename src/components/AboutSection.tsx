@@ -2,6 +2,7 @@ import { useRef, useState, Suspense, useEffect } from "react";
 import { motion } from "framer-motion";
 import Spline from '@splinetool/react-spline';
 import { Download } from "lucide-react";
+import { ErrorBoundary } from "./ErrorBoundary";
 import logoWhite from "../assets/assets/WCD(E)_LogoWeiß.svg";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -224,9 +225,29 @@ function AboutSection() {
             transition={{ duration: 0.3 }}
           >
             <div className="person-image-container">
-              <div className={`person-photo-placeholder ${currentPerson === 'justin' ? 'justin-spline-container' : ''}`}>
-                <Suspense fallback={<div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>Loading 3D scene...</div>}>
-                  {currentPerson === 'justin' ? (
+              <div className="person-photo-placeholder justin-spline-container">
+                <ErrorBoundary
+                  fallback={
+                    <div
+                      className="spline-fallback"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, rgba(30,30,30,0.9), rgba(50,50,50,0.9))',
+                        color: 'rgba(255,255,255,0.7)',
+                        fontSize: '0.9rem',
+                        textAlign: 'center',
+                        padding: '1rem',
+                      }}
+                    >
+                      <span>{personData[currentPerson].name}</span>
+                    </div>
+                  }
+                >
+                  <Suspense fallback={<div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)' }}>Loading...</div>}>
                     <Spline
                       scene={personData[currentPerson].splineScene}
                       {...({ width: 1080, height: 1920 } as any)}
@@ -234,15 +255,8 @@ function AboutSection() {
                         console.error('Spline scene error:', error);
                       }}
                     />
-                  ) : (
-                    <Spline
-                      scene={personData[currentPerson].splineScene}
-                      onError={(error) => {
-                        console.error('Spline scene error:', error);
-                      }}
-                    />
-                  )}
-                </Suspense>
+                  </Suspense>
+                </ErrorBoundary>
               </div>
               <div className="person-toggle-container">
                 <div className="person-toggle-switch">

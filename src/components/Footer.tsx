@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logoWhite from "../assets/assets/WCD(E)_LogoWeiß.svg";
 import TextModal from "./TextModal";
 
 function Footer() {
   const [isImprintOpen, setIsImprintOpen] = useState(false);
   const [isDatenschutzOpen, setIsDatenschutzOpen] = useState(false);
+
+  useEffect(() => {
+    const handleOpenDatenschutz = () => setIsDatenschutzOpen(true);
+    window.addEventListener("open-datenschutz", handleOpenDatenschutz);
+    return () => window.removeEventListener("open-datenschutz", handleOpenDatenschutz);
+  }, []);
 
   const imprintContent = `Warcord Enterprise
 
@@ -70,10 +76,9 @@ Hinweis zur verantwortlichen Stelle
 Die verantwortliche Stelle für die Datenverarbeitung auf dieser Website ist:
 
 Warcord Enterprise
-[Adresse]
-[PLZ Ort]
+Am Seewald 25
+88046 Friedrichshafen
 
-Telefon: [Telefonnummer]
 E-Mail: info@wcde.agency
 
 Verantwortliche Stelle ist die natürliche oder juristische Person, die allein oder gemeinsam mit anderen über die Zwecke und Mittel der Verarbeitung von personenbezogenen Daten (z. B. Namen, E-Mail-Adressen o. Ä.) entscheidet.

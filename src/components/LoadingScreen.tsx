@@ -17,7 +17,6 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
   const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
-    
     startTimeRef.current = performance.now();
 
     const animate = (currentTime: number) => {
@@ -26,10 +25,10 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
       }
 
       const elapsed = currentTime - startTimeRef.current;
-      
+
       if (elapsed >= PROGRESS_DURATION) {
         setProgress(100);
-        
+
         if (elapsed >= TOTAL_DURATION) {
           if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
@@ -64,7 +63,7 @@ export function LoadingScreen({ onComplete }: LoadingScreenProps) {
           className="loading-screen"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeInOut" }}
+          transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
         >
           <div
             className="loading-bar"

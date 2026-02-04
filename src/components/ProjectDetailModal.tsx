@@ -230,7 +230,7 @@ function ProjectDetailModal({ isOpen, onClose, project }: ProjectDetailModalProp
                         currentPortraitGroup.push({ image, index: originalIndex });
                         
                         // Wenn 2 Portrait-Bilder gesammelt oder letztes Bild, zeige sie nebeneinander
-                        if (currentPortraitGroup.length === 2 || originalIndex === project.images.length - 1) {
+                        if (currentPortraitGroup.length === 2 || originalIndex === (project.images?.length ?? 1) - 1) {
                           result.push(
                             <div key={`portrait-group-${portraitIndex}`} className="project-modal-images-row">
                               {currentPortraitGroup.map((item, groupIndex) => (
