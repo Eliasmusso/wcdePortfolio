@@ -1,6 +1,6 @@
-import { useRef, useState, Suspense, useEffect } from "react";
+import { useRef, useState, useEffect, Suspense } from "react";
 import { motion } from "framer-motion";
-import Spline from '@splinetool/react-spline';
+import Spline from "@splinetool/react-spline";
 import { Download } from "lucide-react";
 import { ErrorBoundary } from "./ErrorBoundary";
 import logoWhite from "../assets/assets/WCD(E)_LogoWeiß.svg";
@@ -170,14 +170,30 @@ function ScrollRevealText({ text, containerRef }: ScrollRevealTextProps) {
   );
 }
 
+const SPLINE_FALLBACK_STYLE: React.CSSProperties = {
+  width: "100%",
+  height: "100%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  background: "linear-gradient(135deg, rgba(30,30,30,0.9), rgba(50,50,50,0.9))",
+  color: "rgba(255,255,255,0.7)",
+  fontSize: "0.9rem",
+  textAlign: "center",
+  padding: "1rem",
+};
+
 function AboutSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const textContainerRef = useRef<HTMLDivElement>(null);
-  const [currentPerson, setCurrentPerson] = useState<'elias' | 'justin'>('elias');
-
+  const [currentPerson, setCurrentPerson] = useState<"elias" | "justin">("elias");
+  const [splineOk, setSplineOk] = useState<Record<"elias" | "justin", boolean | null>>({
+    elias: null,
+    justin: null,
+  });
 
   const togglePerson = () => {
-    setCurrentPerson(prev => prev === 'elias' ? 'justin' : 'elias');
+    setCurrentPerson((prev) => (prev === "elias" ? "justin" : "elias"));
   };
 
   const personData = {
@@ -185,15 +201,31 @@ function AboutSection() {
       name: "Elias Musso",
       role: "Graphic Designer",
       services: ["Brand Design", "Typography", "Visual Identity", "Print Design", "Logo Design"],
-      splineScene: "https://prod.spline.design/wStu4tKS9sirJXUd/scene.splinecode"
+      splineScene: "https://prod.spline.design/wStu4tKS9sirJXUd/scene.splinecode",
     },
     justin: {
-      name: "Justin Jambrec", 
+      name: "Justin Jambrec",
       role: "Software Engineer",
       services: ["Web Development", "Frontend", "Backend", "UI/UX", "Database Design"],
-      splineScene: "https://prod.spline.design/2b6kFeKMmzE0I-K1/scene.splinecode"
-    }
+      splineScene: "https://prod.spline.design/2b6kFeKMmzE0I-K1/scene.splinecode",
+    },
   };
+
+  useEffect(() => {
+    const url = personData[currentPerson].splineScene;
+    if (splineOk[currentPerson] !== null) return;
+    let cancelled = false;
+    fetch(url, { method: "HEAD", mode: "cors" })
+      .then((res) => {
+        if (!cancelled) setSplineOk((prev) => ({ ...prev, [currentPerson]: res.ok }));
+      })
+      .catch(() => {
+        if (!cancelled) setSplineOk((prev) => ({ ...prev, [currentPerson]: false }));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentPerson]);
 
   return (
     <section id="about" className="section section-about" ref={sectionRef}>
@@ -226,37 +258,55 @@ function AboutSection() {
           >
             <div className="person-image-container">
               <div className="person-photo-placeholder justin-spline-container">
-                <ErrorBoundary
-                  fallback={
-                    <div
-                      className="spline-fallback"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'linear-gradient(135deg, rgba(30,30,30,0.9), rgba(50,50,50,0.9))',
-                        color: 'rgba(255,255,255,0.7)',
-                        fontSize: '0.9rem',
-                        textAlign: 'center',
-                        padding: '1rem',
-                      }}
+                {splineOk[currentPerson] === true ? (
+                  <ErrorBoundary
+                    fallback={
+                      <div className="spline-fallback" style={SPLINE_FALLBACK_STYLE}>
+                        <span>{personData[currentPerson].name}</span>
+                      </div>
+                    }
+                  >
+                    <Suspense
+                      fallback={
+                        <div
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "rgba(255,255,255,0.6)",
+                          }}
+                        >
+                          Loading...
+                        </div>
+                      }
                     >
-                      <span>{personData[currentPerson].name}</span>
-                    </div>
-                  }
-                >
-                  <Suspense fallback={<div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.6)' }}>Loading...</div>}>
-                    <Spline
-                      scene={personData[currentPerson].splineScene}
-                      {...({ width: 1080, height: 1920 } as any)}
-                      onError={(error) => {
-                        console.error('Spline scene error:', error);
-                      }}
-                    />
-                  </Suspense>
-                </ErrorBoundary>
+                      <Spline
+                        scene={personData[currentPerson].splineScene}
+                        {...({ width: 1080, height: 1920 } as any)}
+                        onError={(err) => console.error("Spline scene error:", err)}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                ) : splineOk[currentPerson] === false ? (
+                  <div className="spline-fallback" style={SPLINE_FALLBACK_STYLE}>
+                    <span>{personData[currentPerson].name}</span>
+                  </div>
+                ) : (
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "rgba(255,255,255,0.6)",
+                    }}
+                  >
+                    Loading...
+                  </div>
+                )}
               </div>
               <div className="person-toggle-container">
                 <div className="person-toggle-switch">
